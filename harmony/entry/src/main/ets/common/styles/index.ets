@@ -6,3 +6,19 @@ export { Typography, TextStyles } from './Typography'
 export { Spacing, FlexLayout } from './Spacing'
 export { BorderRadius, Radii } from './BorderRadius'
 export { Shadows, Durations, Curves, Animations } from './Effects'
+export { CreateColors } from './CreateColors'
+export {
+  AnimationDuration,
+  AnimationCurve,
+  AnimationPresets,
+  AnimationPreset,
+  HoverEffects,
+  PressEffects,
+  HoverEffect,
+  PressEffect,
+  getStaggerDelay,
+  getAppearAnimation,
+  getDisappearAnimation,
+  getScaleInAnimation,
+  ShimmerAnimation
+} from './Animation'

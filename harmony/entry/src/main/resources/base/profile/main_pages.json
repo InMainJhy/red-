@@ -2,6 +2,8 @@
   "src": [
     "pages/Index",
     "pages/ProfileDetail",
-    "pages/Arena"
+    "pages/Arena",
+    "pages/CreateRole",
+    "pages/ExplorePersonas"
   ]
 }

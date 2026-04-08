@@ -3,15 +3,16 @@ import { router } from '@kit.ArkUI'
 import { PersonaSpec, PresetProfile, ProfileBundle, RouteParams, TimelineNode, EMPTY_PROFILE } from '../common/Models'
 import { fetchSafeAreaInsets } from '../common/WindowSafeArea'
 import { PersonaApi } from '../service/PersonaApi'
-import { ColorsLight } from '../common/styles/Colors'
+import { MintColors } from '../common/styles/MintColors'
 import { Typography } from '../common/styles/Typography'
 import { Spacing } from '../common/styles/Spacing'
 import { BorderRadius } from '../common/styles/BorderRadius'
 
+const FALLBACK_SAFE_TOP_VP: number = 52
+
 @Entry
 @Component
 struct ProfileDetail {
-  // 状态
   @State profile: PresetProfile = EMPTY_PROFILE
   @State nodes: TimelineNode[] = []
   @State agents: PersonaSpec[] = []
@@ -19,7 +20,6 @@ struct ProfileDetail {
   @State safeTopVp: number = 0
   @State safeBottomVp: number = 0
 
-  // 生命周期
   aboutToAppear(): void {
     this.loadSafeInsets()
     const params = router.getParams() as RouteParams
@@ -45,7 +45,10 @@ struct ProfileDetail {
     }
   }
 
-  // 业务方法
+  topInsetVp(): number {
+    return this.safeTopVp > 0 ? this.safeTopVp : FALLBACK_SAFE_TOP_VP
+  }
+
   toggleAgent(agentId: string): void {
     if (this.selectedAgentIds.includes(agentId)) {
       this.selectedAgentIds = this.selectedAgentIds.filter((item: string) => item !== agentId)
@@ -70,159 +73,227 @@ struct ProfileDetail {
     })
   }
 
-  // 获取阶段颜色
   getStageColor(stageType: string): string {
     const colors: Record<string, string> = {
-      'early': '#0D7A72',
-      'turning-point': '#4A7C59',
-      'crisis': '#7A3C35',
-      'rebuild': '#6B5B95',
-      'peak': '#B8860B'
+      'early': MintColors.stage.early,
+      'turning-point': MintColors.stage.turningPoint,
+      'crisis': MintColors.stage.crisis,
+      'rebuild': MintColors.stage.rebuild,
+      'peak': MintColors.stage.peak
     }
-    return colors[stageType] || ColorsLight.accent
+    return colors[stageType] || MintColors.stage.default
   }
 
   build() {
-    Scroll() {
-      Column({ space: Spacing.giant }) {
-        // 头部信息卡片
-        Column({ space: Spacing.card.large }) {
-          // 返回按钮
-          Button('← 返回角色库')
-            .fontSize(Typography.size.body)
-            .fontColor(ColorsLight.accent)
-            .backgroundColor('#00000000')
-            .padding(0)
-            .onClick(() => {
-              router.back()
-            })
+    Stack({ alignContent: Alignment.TopStart }) {
+      // 背景
+      Column() {
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor(MintColors.background)
 
-          // 标签
-          Text('角色详情子页')
-            .fontSize(Typography.size.caption)
-            .fontColor(ColorsLight.accent)
-            .letterSpacing(Typography.letterSpacing.wide)
+        Column()
+          .width(300)
+          .height(200)
+          .borderRadius(150)
+          .backgroundColor('rgba(78, 205, 196, 0.06)')
+          .blur(80)
+          .position({ x: -100, y: -60 })
 
-          // 人物名称
-          Text(this.profile.displayName)
-            .fontSize(Typography.size.hero)
-            .fontWeight(Typography.weight.bold)
-            .fontColor(ColorsLight.textPrimary)
+        Column()
+          .width(260)
+          .height(170)
+          .borderRadius(130)
+          .backgroundColor('rgba(184, 169, 217, 0.06)')
+          .blur(60)
+          .position({ right: -80, y: -40 })
+      }
+      .width('100%')
+      .height('100%')
 
-          // 传记
-          Text(this.profile.biography)
-            .fontSize(Typography.size.subtitle)
-            .fontColor(ColorsLight.textSecondary)
-            .lineHeight(Typography.lineHeight.relaxed)
+      // 左上返回
+      Button() {
+        Text('<')
+          .fontSize(20)
+          .fontColor(MintColors.mintDark)
+      }
+      .width(38)
+      .height(38)
+      .backgroundColor(MintColors.surfaceGlass)
+      .borderRadius(19)
+      .shadow({
+        radius: 10,
+        color: 'rgba(78, 205, 196, 0.1)',
+        offsetX: 0,
+        offsetY: 3
+      })
+      .position({ x: Spacing.page.horizontal, y: this.topInsetVp() + 12 })
+      .onClick(() => {
+        router.back()
+      })
 
-          // 底部操作栏
-          Row() {
-            Text(`已选节点 ${this.selectedAgentIds.length} / 3`)
+      Scroll() {
+        Column({ space: Spacing.lg }) {
+          // 头部人物卡片
+          Column({ space: Spacing.md }) {
+            Text(this.profile.displayName)
+              .fontSize(Typography.size.hero)
+              .fontWeight(Typography.weight.bold)
+              .fontColor(MintColors.textPrimary)
+
+            Text(this.profile.biography)
               .fontSize(Typography.size.body)
-              .fontColor(ColorsLight.textTertiary)
+              .fontColor(MintColors.textSecondary)
+              .lineHeight(Typography.lineHeight.relaxed)
 
-            Blank()
+            Divider()
+              .color(MintColors.divider)
+              .margin({ top: Spacing.sm, bottom: Spacing.sm })
 
-            Button('带入议会')
-              .height(40)
-              .fontSize(Typography.size.bodyLg)
-              .fontColor(ColorsLight.background)
-              .backgroundColor(ColorsLight.textPrimary)
-              .borderRadius(BorderRadius.pill)
-              .enabled(this.selectedAgentIds.length >= 2)
-              .opacity(this.selectedAgentIds.length >= 2 ? 1 : 0.5)
-              .onClick(() => {
-                this.goArena()
-              })
+            // 底部操作行
+            Row() {
+              Column() {
+                Text(`${this.selectedAgentIds.length}`)
+                  .fontSize(Typography.size.xl)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(MintColors.mint)
+                Text('已选节点')
+                  .fontSize(Typography.size.xs)
+                  .fontColor(MintColors.textMuted)
+              }
+
+              Blank()
+
+              Button('带入议会')
+                .height(40)
+                .fontSize(Typography.size.bodyLg)
+                .fontColor(this.selectedAgentIds.length >= 2 ? '#FFFFFF' : MintColors.textMuted)
+                .backgroundColor(this.selectedAgentIds.length >= 2 ? MintColors.mint : MintColors.backgroundSecondary)
+                .borderRadius(BorderRadius.xxl)
+                .enabled(this.selectedAgentIds.length >= 2)
+                .onClick(() => {
+                  this.goArena()
+                })
+            }
+            .width('100%')
           }
           .width('100%')
-        }
-        .alignItems(HorizontalAlign.Start)
-        .padding(Spacing.huge)
-        .width('100%')
-        .backgroundColor(ColorsLight.backgroundSecondary)
-        .borderRadius(BorderRadius.card.large)
+          .padding(Spacing.lg)
+          .backgroundColor(MintColors.cardPrimary)
+          .borderRadius(BorderRadius.xxl)
+          .border({
+            width: 0.5,
+            color: MintColors.border,
+            radius: BorderRadius.xxl
+          })
+          .shadow({
+            radius: 20,
+            color: 'rgba(78, 205, 196, 0.08)',
+            offsetX: 0,
+            offsetY: 6
+          })
 
-        // 时间线节点列表
-        ForEach(this.nodes, (node: TimelineNode, index: number) => {
-          this.buildTimelineNode(node, index)
-        }, (node: TimelineNode) => node.nodeId)
+          // 时间线标签
+          Row() {
+            Text('人生时间线')
+              .fontSize(Typography.size.bodyLg)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(MintColors.textPrimary)
+          }
+          .width('100%')
+          .padding({ top: Spacing.sm })
+
+          // 时间线节点
+          ForEach(this.nodes, (node: TimelineNode, index: number) => {
+            this.buildTimelineNode(node, index)
+          }, (node: TimelineNode) => node.nodeId)
+        }
+        .padding({
+          left: Spacing.page.horizontal,
+          right: Spacing.page.horizontal,
+          top: this.topInsetVp() + 60,
+          bottom: this.safeBottomVp + Spacing.xl
+        })
       }
-      .padding({
-        left: Spacing.page.horizontal,
-        right: Spacing.page.horizontal,
-        top: Spacing.page.vertical + this.safeTopVp,
-        bottom: Spacing.page.vertical + this.safeBottomVp
-      })
       .width('100%')
-      .alignItems(HorizontalAlign.Start)
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring)
     }
-    .scrollBar(BarState.Off)
-    .backgroundColor(ColorsLight.background)
     .width('100%')
     .height('100%')
+    .backgroundColor(MintColors.background)
   }
 
   @Builder
   buildTimelineNode(node: TimelineNode, index: number) {
-    Column({ space: Spacing.card.medium }) {
+    Column({ space: Spacing.md }) {
       // 节点头部
       Row() {
-        // 序号圆圈
+        // 阶段圆点
+        Column()
+          .width(28)
+          .height(28)
+          .borderRadius(14)
+          .backgroundColor(this.getStageColor(node.stageType))
+
         Text(`${index + 1}`)
-          .fontSize(Typography.size.body)
-          .fontColor(ColorsLight.background)
+          .fontSize(Typography.size.sm)
+          .fontColor('#FFFFFF')
           .width(28)
           .height(28)
           .textAlign(TextAlign.Center)
-          .backgroundColor(this.getStageColor(node.stageType))
-          .borderRadius(14)
+          .position({ y: 0 })
 
-        // 时间标签
-        Text(`${node.timeLabel}${node.ageLabel ? ' / ' + node.ageLabel : ''}`)
-          .fontSize(Typography.size.caption)
-          .fontColor(ColorsLight.accent)
+        Text(node.stageLabel)
+          .fontSize(Typography.size.bodyLg)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(MintColors.textPrimary)
           .margin({ left: Spacing.sm })
+
+        Blank()
+
+        Text(node.timeLabel)
+          .fontSize(Typography.size.caption)
+          .fontColor(MintColors.textMuted)
       }
       .width('100%')
-
-      // 阶段标题
-      Text(node.stageLabel)
-        .fontSize(Typography.size.xl)
-        .fontWeight(Typography.weight.bold)
-        .fontColor(ColorsLight.textPrimary)
 
       // 摘要
       Text(node.summary)
-        .fontSize(Typography.size.bodyLg)
-        .fontColor(ColorsLight.textSecondary)
+        .fontSize(Typography.size.body)
+        .fontColor(MintColors.textSecondary)
         .lineHeight(Typography.lineHeight.relaxed)
 
-      // 关键事件
+      // 关键事件（右侧占满剩余宽度并自动换行，避免单行溢出）
       Row({ space: Spacing.xs }) {
         Text('关键事件：')
-          .fontSize(Typography.size.body)
-          .fontColor(ColorsLight.textTertiary)
+          .fontSize(Typography.size.sm)
+          .fontColor(MintColors.textMuted)
+          .flexShrink(0)
         Text(node.keyEvent)
-          .fontSize(Typography.size.body)
-          .fontColor(ColorsLight.textPrimary)
+          .fontSize(Typography.size.sm)
+          .fontColor(MintColors.textPrimary)
+          .layoutWeight(1)
+          .lineHeight(22)
       }
       .width('100%')
+      .alignItems(VerticalAlign.Top)
 
       // 特质标签
       Flex({ direction: FlexDirection.Row, wrap: FlexWrap.Wrap }) {
         ForEach(node.traits, (trait: string) => {
           Text(trait)
-            .fontSize(Typography.size.sm)
-            .fontColor(ColorsLight.accent)
+            .fontSize(Typography.size.xs)
+            .fontColor(MintColors.mintDark)
             .padding({
               left: Spacing.sm,
               right: Spacing.sm,
-              top: Spacing.xs,
-              bottom: Spacing.xs
+              top: 3,
+              bottom: 3
             })
-            .backgroundColor(ColorsLight.accentLight)
-            .borderRadius(BorderRadius.sm)
+            .backgroundColor(MintColors.mintBg)
+            .borderRadius(BorderRadius.chip)
             .margin({ right: Spacing.xs, bottom: Spacing.xs })
         }, (trait: string) => trait)
       }
@@ -232,13 +303,17 @@ struct ProfileDetail {
       if (node.values.length > 0) {
         Row({ space: Spacing.xs }) {
           Text('价值观：')
-            .fontSize(Typography.size.body)
-            .fontColor(ColorsLight.textTertiary)
+            .fontSize(Typography.size.sm)
+            .fontColor(MintColors.textMuted)
+            .flexShrink(0)
           Text(node.values.join(' / '))
-            .fontSize(Typography.size.body)
-            .fontColor(ColorsLight.textPrimary)
+            .fontSize(Typography.size.sm)
+            .fontColor(MintColors.textPrimary)
+            .layoutWeight(1)
+            .lineHeight(22)
         }
         .width('100%')
+        .alignItems(VerticalAlign.Top)
       }
 
       // 证据引用
@@ -246,32 +321,42 @@ struct ProfileDetail {
         Column({ space: Spacing.xs }) {
           Text('证据引用：')
             .fontSize(Typography.size.sm)
-            .fontColor(ColorsLight.textTertiary)
+            .fontColor(MintColors.textMuted)
 
           Text(`"${node.sourceEvidence[0].quote}"`)
             .fontSize(Typography.size.body)
-            .fontColor(ColorsLight.error)
+            .fontColor(MintColors.lavenderDark)
             .lineHeight(Typography.lineHeight.relaxed)
             .fontStyle(FontStyle.Italic)
         }
         .width('100%')
-        .padding(Spacing.card.medium)
-        .backgroundColor(ColorsLight.cardMuted)
-        .borderRadius(BorderRadius.card.small)
+        .padding(Spacing.md)
+        .backgroundColor(MintColors.lavenderPale)
+        .borderRadius(BorderRadius.lg)
       }
 
-      // 加入/移出按钮
-      Button(this.selectedAgentIds.includes(this.agents[index]?.agentId) ? '✓ 已加入议会' : '+ 加入议会')
+      // 加入按钮
+      Button(
+        this.selectedAgentIds.includes(this.agents[index]?.agentId) ? '✓ 已加入议会' : '+ 加入议会'
+      )
         .width('100%')
-        .height(44)
-        .fontSize(Typography.size.bodyLg)
-        .fontColor(this.selectedAgentIds.includes(this.agents[index]?.agentId) ? ColorsLight.accent : ColorsLight.error)
-        .backgroundColor(this.selectedAgentIds.includes(this.agents[index]?.agentId) ? ColorsLight.accentLight : ColorsLight.cardMuted)
-        .borderRadius(BorderRadius.pill)
+        .height(42)
+        .fontSize(Typography.size.body)
+        .fontColor(
+          this.selectedAgentIds.includes(this.agents[index]?.agentId)
+            ? '#FFFFFF'
+            : MintColors.mintDark
+        )
+        .backgroundColor(
+          this.selectedAgentIds.includes(this.agents[index]?.agentId)
+            ? MintColors.mint
+            : MintColors.surfaceGlass
+        )
+        .borderRadius(BorderRadius.xxl)
         .border({
           width: 1,
-          color: this.selectedAgentIds.includes(this.agents[index]?.agentId) ? ColorsLight.accent : ColorsLight.error,
-          radius: BorderRadius.pill
+          color: this.selectedAgentIds.includes(this.agents[index]?.agentId) ? MintColors.mint : MintColors.border,
+          radius: BorderRadius.xxl
         })
         .animation({
           duration: 200,
@@ -285,9 +370,14 @@ struct ProfileDetail {
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
-    .padding(Spacing.card.xlarge)
-    .backgroundColor(ColorsLight.cardPrimary)
-    .borderRadius(BorderRadius.card.xlarge)
+    .padding(Spacing.lg)
+    .backgroundColor(MintColors.cardPrimary)
+    .borderRadius(BorderRadius.xxl)
+    .border({
+      width: 0.5,
+      color: MintColors.border,
+      radius: BorderRadius.xxl
+    })
     .transition(TransitionEffect.OPACITY.animation({
       duration: 300,
       curve: Curve.EaseOut

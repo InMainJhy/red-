@@ -3,19 +3,84 @@ import { Typography } from '../common/styles/Typography'
 import { BorderRadius } from '../common/styles/BorderRadius'
 import { Spacing } from '../common/styles/Spacing'
 import { Durations, Curves } from '../common/styles/Effects'
+import {
+  AnimationDuration,
+  AnimationCurve
+} from '../common/styles/Animation'
+import { Icon } from './CustomIcon'
 
-// 角色首页顶部双入口卡片
+// 角色首页顶部双入口：创造新识 | 寻访前人（绿色卡片直达二级搜索页，不在本页再放黄色横条卡片）
 @Component
 export struct RoleHomeActionCards {
   onCreateClick: () => void = () => {}
+  onExploreClick: () => void = () => {}
   onImportClick: () => void = () => {}
   @State private pressedLeft: boolean = false
   @State private pressedRight: boolean = false
+  @State private leftCardOpacity: number = 0
+  @State private rightCardOpacity: number = 0
+  @State private leftCardTranslateY: number = 40
+  @State private rightCardTranslateY: number = 40
+  @State private leftIconRotate: number = 0
+  @State private rightIconBounce: number = 1
+
+  aboutToAppear(): void {
+    setTimeout(() => {
+      animateTo({
+        duration: AnimationDuration.slow,
+        curve: AnimationCurve.emphasized
+      }, () => {
+        this.leftCardOpacity = 1
+        this.leftCardTranslateY = 0
+      })
+
+      animateTo({
+        duration: AnimationDuration.slow,
+        curve: AnimationCurve.bounce
+      }, () => {
+        this.leftIconRotate = 360
+      })
+    }, 100)
+
+    setTimeout(() => {
+      animateTo({
+        duration: AnimationDuration.slow,
+        curve: AnimationCurve.emphasized
+      }, () => {
+        this.rightCardOpacity = 1
+        this.rightCardTranslateY = 0
+      })
+
+      animateTo({
+        duration: AnimationDuration.slow,
+        curve: AnimationCurve.bounce
+      }, () => {
+        this.rightIconBounce = 1
+      })
+    }, 250)
+  }
 
   build() {
-    Row({ space: Spacing.card.medium }) {
-      this.buildCreateCard()
-      this.buildImportCard()
+    Column({ space: Spacing.sm }) {
+      Row({ space: Spacing.card.medium }) {
+        this.buildCreateCard()
+        this.buildExploreCard()
+      }
+      .width('100%')
+
+      // 弱化入口：导入传记（不占主卡片位）
+      Row() {
+        Text('导入已有的人物传记')
+          .fontSize(Typography.size.caption)
+          .fontColor(Colors.textMuted)
+          .decoration({ type: TextDecorationType.Underline })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Center)
+      .padding({ top: Spacing.xs })
+      .onClick(() => {
+        this.onImportClick()
+      })
     }
     .width('100%')
   }
@@ -23,9 +88,7 @@ export struct RoleHomeActionCards {
   @Builder
   buildCreateCard() {
     Column({ space: Spacing.sm }) {
-      // 图标区域
       Stack({ alignContent: Alignment.TopStart }) {
-        // 装饰圆形
         Column()
           .width(44)
           .height(44)
@@ -37,27 +100,19 @@ export struct RoleHomeActionCards {
             radius: 22
           })
 
-        // 叠加的图标
         Stack({ alignContent: Alignment.Center }) {
-          Column({ space: 2 }) {
-            Column()
-              .width(16)
-              .height(16)
-              .borderRadius(4)
-              .backgroundColor('rgba(99, 102, 241, 0.6)')
-            Column()
-              .width(20)
-              .height(12)
-              .borderRadius(6)
-              .backgroundColor('rgba(99, 102, 241, 0.4)')
-          }
-          .alignItems(HorizontalAlign.Center)
+          Icon({
+            iconType: 'edit',
+            iconSize: 20,
+            iconColor: '#6366F1'
+          })
 
           Column() {
-            Text('+')
-              .fontSize(10)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#FFFFFF')
+            Icon({
+              iconType: 'plus',
+              iconSize: 8,
+              iconColor: '#FFFFFF'
+            })
           }
           .width(14)
           .height(14)
@@ -69,6 +124,9 @@ export struct RoleHomeActionCards {
         }
         .width(44)
         .height(44)
+        .rotate({
+          angle: this.leftIconRotate
+        })
       }
       .width(44)
       .height(44)
@@ -122,14 +180,18 @@ export struct RoleHomeActionCards {
     .onClick(() => {
       this.onCreateClick()
     })
+    .opacity(this.leftCardOpacity)
+    .translate({ x: 0, y: this.leftCardTranslateY })
+    .animation({
+      duration: AnimationDuration.slow,
+      curve: AnimationCurve.emphasized
+    })
   }
 
   @Builder
-  buildImportCard() {
+  buildExploreCard() {
     Column({ space: Spacing.sm }) {
-      // 图标区域
       Stack({ alignContent: Alignment.Center }) {
-        // 背景装饰圆形
         Column()
           .width(44)
           .height(44)
@@ -141,21 +203,18 @@ export struct RoleHomeActionCards {
             radius: 22
           })
 
-        // 导入图标
         Column({ space: 3 }) {
-          Column()
-            .width(3)
-            .height(14)
-            .borderRadius(1.5)
-            .backgroundColor('#10B981')
-
-          Column()
-            .width(12)
-            .height(3)
-            .borderRadius(1.5)
-            .backgroundColor('#10B981')
+          Icon({
+            iconType: 'search',
+            iconSize: 20,
+            iconColor: '#10B981'
+          })
         }
         .alignItems(HorizontalAlign.Center)
+        .scale({
+          x: this.rightIconBounce,
+          y: this.rightIconBounce
+        })
       }
       .width(44)
       .height(44)
@@ -167,7 +226,7 @@ export struct RoleHomeActionCards {
         .width('100%')
         .textAlign(TextAlign.Start)
 
-      Text('导入已有的人物传记')
+      Text('搜索名人角色，部署 AI 对话')
         .fontSize(Typography.size.caption)
         .fontColor(Colors.textTertiary)
         .width('100%')
@@ -207,7 +266,13 @@ export struct RoleHomeActionCards {
       }
     })
     .onClick(() => {
-      this.onImportClick()
+      this.onExploreClick()
+    })
+    .opacity(this.rightCardOpacity)
+    .translate({ x: 0, y: this.rightCardTranslateY })
+    .animation({
+      duration: AnimationDuration.slow,
+      curve: AnimationCurve.emphasized
     })
   }
 }

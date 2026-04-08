@@ -1,51 +1,96 @@
-// TabBar 组件属性
+import { Icon, IconType } from './CustomIcon'
+
 export interface TabBarProps {
   activeIndex: number
   safeBottomVp?: number
 }
 
-// TabBar 组件 - 悬浮白色胶囊底栏（图标在上、选中项浅紫圆角底）
 @Component
 export struct TabBar {
   @Prop activeIndex: number = 0
   @Prop safeBottomVp: number = 0
+  @State private pressedIndex: number = -1
+  @State private barOpacity: number = 0
+  @State private barTranslateY: number = 16
   onTabChange: (index: number) => void = () => {}
 
-  // Tab 文案（与产品设计稿一致：会议）
   private tabLabels: string[] = ['角色', '会议', '纪要']
-  // 选中态：紫罗兰主色与浅紫底（与参考图一致）
   private readonly tabActiveFg: string = '#6366F1'
   private readonly tabActiveBg: string = '#EEF2FF'
   private readonly tabInactiveFg: string = '#94A3B8'
+
+  aboutToAppear(): void {
+    setTimeout(() => {
+      animateTo({
+        duration: 260,
+        curve: Curve.EaseOut
+      }, () => {
+        this.barOpacity = 1
+        this.barTranslateY = 0
+      })
+    }, 80)
+  }
 
   private getTabFg(index: number): string {
     return this.activeIndex === index ? this.tabActiveFg : this.tabInactiveFg
   }
 
+  private getTabIconType(index: number): IconType {
+    if (index === 0) {
+      return 'person'
+    }
+    if (index === 1) {
+      return 'chat'
+    }
+    return 'bookOpen'
+  }
+
   build() {
-    Column() {
-      Row({ space: 0 }) {
-        ForEach(this.tabLabels, (label: string, index: number) => {
-          this.buildTabItem(label, index)
-        }, (label: string) => label)
+    Stack({ alignContent: Alignment.Top }) {
+      Column() {
+        Row({ space: 0 }) {
+          ForEach(this.tabLabels, (label: string, index: number) => {
+            this.buildTabItem(label, index)
+          }, (label: string) => label)
+        }
+        .width('100%')
+        .height(56)
+        .padding({
+          left: 8,
+          right: 8,
+          top: 6,
+          bottom: 6
+        })
+        .justifyContent(FlexAlign.SpaceEvenly)
+        .backgroundColor('rgba(255, 255, 255, 0.94)')
+        .borderRadius(28)
+        .border({
+          width: 1,
+          color: 'rgba(255, 255, 255, 0.88)',
+          radius: 28
+        })
+        .backdropBlur(24)
+        .shadow({
+          radius: 24,
+          color: 'rgba(15, 23, 42, 0.10)',
+          offsetX: 0,
+          offsetY: 8
+        })
       }
       .width('100%')
-      .height(52)
-      .padding({
-        left: 8,
-        right: 8,
-        top: 6,
-        bottom: 6
-      })
-      .justifyContent(FlexAlign.SpaceEvenly)
-      .backgroundColor('#FFFFFF')
-      .borderRadius(26)
-      .shadow({
-        radius: 20,
-        color: 'rgba(15, 23, 42, 0.08)',
-        offsetX: 0,
-        offsetY: 4
-      })
+
+      Column()
+        .width('82%')
+        .height(1)
+        .linearGradient({
+          direction: GradientDirection.Right,
+          colors: [
+            ['rgba(99, 102, 241, 0)', 0],
+            ['rgba(99, 102, 241, 0.22)', 0.5],
+            ['rgba(99, 102, 241, 0)', 1]
+          ]
+        })
+        .position({ y: 1 })
     }
     .width('100%')
     .padding({
@@ -53,17 +98,34 @@ export struct TabBar {
       right: 24,
       bottom: 10 + this.safeBottomVp
     })
+    .opacity(this.barOpacity)
+    .translate({ x: 0, y: this.barTranslateY })
+    .animation({
+      duration: 260,
+      curve: Curve.EaseOut
+    })
   }
 
   @Builder
   buildTabItem(label: string, index: number) {
-    Column({ space: 3 }) {
+    Column({ space: 2 }) {
       this.buildIcon(index)
 
       Text(label)
         .fontSize(10)
         .fontWeight(this.activeIndex === index ? FontWeight.Medium : FontWeight.Normal)
         .fontColor(this.getTabFg(index))
+
+      Column()
+        .width(this.activeIndex === index ? 12 : 4)
+        .height(3)
+        .borderRadius(2)
+        .backgroundColor(this.activeIndex === index ? this.tabActiveFg : 'rgba(0, 0, 0, 0)')
+        .opacity(this.activeIndex === index ? 1 : 0)
+        .animation({
+          duration: 180,
+          curve: Curve.EaseOut
+        })
     }
     .layoutWeight(1)
     .justifyContent(FlexAlign.Center)
@@ -74,21 +136,81 @@ export struct TabBar {
       top: 6,
       bottom: 6
     })
-    .borderRadius(14)
+    .borderRadius(16)
     .backgroundColor(this.activeIndex === index ? this.tabActiveBg : 'rgba(0, 0, 0, 0)')
+    .shadow({
+      radius: this.activeIndex === index ? 10 : 0,
+      color: this.activeIndex === index ? 'rgba(99, 102, 241, 0.10)' : 'rgba(0, 0, 0, 0)',
+      offsetX: 0,
+      offsetY: 4
+    })
+    .scale({
+      x: this.pressedIndex === index ? 0.95 : 1,
+      y: this.pressedIndex === index ? 0.95 : 1
+    })
+    .translate({
+      x: 0,
+      y: this.activeIndex === index ? -1 : 0
+    })
     .animation({
       duration: 200,
       curve: Curve.EaseOut
     })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.pressedIndex = index
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.pressedIndex = -1
+      }
+    })
     .onClick(() => {
       if (this.activeIndex !== index) {
-        this.onTabChange(index)
+        animateTo({
+          duration: 150,
+          curve: Curve.FastOutLinearIn
+        }, () => {
+          this.onTabChange(index)
+        })
       }
     })
   }
 
   @Builder
   buildIcon(index: number) {
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width(this.activeIndex === index ? 24 : 18)
+        .height(this.activeIndex === index ? 24 : 18)
+        .borderRadius(12)
+        .backgroundColor(this.activeIndex === index ? 'rgba(255, 255, 255, 0.72)' : 'rgba(0, 0, 0, 0)')
+        .animation({
+          duration: 180,
+          curve: Curve.EaseOut
+        })
+
+      Column({ space: 1 }) {
+        Icon({
+          iconType: this.getTabIconType(index),
+          iconSize: this.activeIndex === index ? 16 : 15,
+          iconColor: this.getTabFg(index)
+        })
+      }
+      .width(18)
+      .height(18)
+      .alignItems(HorizontalAlign.Center)
+      .scale({
+        x: this.activeIndex === index ? 1.08 : 1,
+        y: this.activeIndex === index ? 1.08 : 1
+      })
+      .animation({
+        duration: 200,
+        curve: Curve.EaseOut
+      })
+    }
+  }
+
+  @Builder
+  buildIconContent(index: number) {
     if (index === 0) {
       this.buildPersonIcon()
     } else if (index === 1) {
@@ -112,21 +234,15 @@ export struct TabBar {
         .borderRadius(4)
         .backgroundColor(this.getTabFg(0))
     }
-    .width(18)
-    .height(18)
-    .alignItems(HorizontalAlign.Center)
   }
 
   @Builder
   buildWaveIcon() {
-    // 三条横向波纹线（风/气流意象）
     Column({ space: 2 }) {
       this.waveLine(this.getTabFg(1), 0)
       this.waveLine(this.getTabFg(1), 1)
       this.waveLine(this.getTabFg(1), 2)
     }
-    .width(18)
-    .height(18)
     .justifyContent(FlexAlign.Center)
   }
 
@@ -158,8 +274,5 @@ export struct TabBar {
         .backgroundColor(this.activeIndex === 2 ? this.tabActiveFg : this.tabInactiveFg)
         .position({ x: 1 })
     }
-    .width(18)
-    .height(18)
-    .alignItems(HorizontalAlign.Center)
   }
 }

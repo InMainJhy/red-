@@ -4,8 +4,11 @@ import {
   ArenaRun,
   ArenaRunRequest,
   ArenaRunResponse,
+  ArenaStreamEvent,
+  ArenaStreamEventType,
   BuildAgentsRequest,
   BuildAgentsResponse,
+  HealthCheckResponse,
   ParseTimelineRequest,
   ParseTimelineResponse,
   PersonaSpec,
@@ -23,37 +26,22 @@ import {
   getTimelineByProfileId
 } from '../data/MockData'
 
-const API_BASE_URLS: string[] = [
+// 线上服务 Base URL
+const API_BASE_URL = 'https://hackhathon.69d5c46af2ab61f5dd649c62.servers.onzeabur.com'
+
+// 本地开发环境备用地址
+const LOCAL_BASE_URLS: string[] = [
   'http://192.168.51.148:3030',
   'http://10.0.2.2:3030',
   'http://127.0.0.1:3030',
   'http://localhost:3030'
 ]
 
-const PROFILE_TIMEOUT_MS: number = 45_000
-const GENERATION_TIMEOUT_MS: number = 180_000
+const PROFILE_TIMEOUT_MS: number = 20_000
+const GENERATION_TIMEOUT_MS: number = 300_000
 
-let activeBaseUrl: string = API_BASE_URLS[0]
-let lastConnectionLabel: string = 'LIVE · 192.168.51.148:3030'
-
-function orderedBaseUrls(): string[] {
-  let result: string[] = [activeBaseUrl]
-  API_BASE_URLS.forEach((url: string) => {
-    if (url !== activeBaseUrl) {
-      result.push(url)
-    }
-  })
-  return result
-}
-
-function rememberBaseUrl(baseUrl: string): void {
-  activeBaseUrl = baseUrl
-  lastConnectionLabel = `LIVE · ${baseUrl.replace('http://', '')}`
-}
-
-function markMock(): void {
-  lastConnectionLabel = 'MOCK FALLBACK'
-}
+let activeBaseUrl: string = API_BASE_URL
+let lastConnectionLabel: string = 'LIVE · 线上服务'
 
 function normalizePayload(result: Object | string): string {
   if (typeof result === 'string') {
@@ -167,13 +155,11 @@ function buildArenaRunRequest(topic: string, mode: ArenaMode, selectedAgents: Pe
 }
 
 async function requestJson<T>(path: string, method: http.RequestMethod, body?: Object, timeoutMs: number = PROFILE_TIMEOUT_MS): Promise<T> {
-  let lastError: string = `请求 ${path} 失败`
-
-  for (let baseUrl of orderedBaseUrls()) {
+  try {
     const client = http.createHttp()
 
     try {
-      let response = await client.request(`${baseUrl}${path}`, {
+      let response = await client.request(`${activeBaseUrl}${path}`, {
         method,
         header: {
           'Content-Type': 'application/json'
@@ -185,19 +171,79 @@ async function requestJson<T>(path: string, method: http.RequestMethod, body?: O
       })
 
       if (response.responseCode >= 200 && response.responseCode < 300) {
-        rememberBaseUrl(baseUrl)
         return parseJson<T>(response.result)
       }
 
-      lastError = parseErrorMessage(response.result, response.responseCode)
-    } catch (error) {
-      lastError = formatThrownError(error as Object)
+      throw new Error(parseErrorMessage(response.result, response.responseCode))
     } finally {
       client.destroy()
     }
+  } catch (error) {
+    throw new Error(formatThrownError(error as Object))
   }
+}
 
-  throw new Error(lastError)
+// SSE 流式解析器
+function parseSSELine(line: string): SSELineResult | null {
+  if (!line || line.startsWith(':')) {
+    return null
+  }
+  const colonIndex = line.indexOf(':')
+  if (colonIndex === -1) {
+    return { field: line.trim(), value: '' }
+  }
+  const field = line.substring(0, colonIndex).trim()
+  let value = line.substring(colonIndex + 1).trim()
+  if (value.startsWith(' ')) {
+    value = value.substring(1)
+  }
+  return { field, value }
+}
+
+// SSE 事件解析器类型
+export type SSEEventHandler = (event: ArenaStreamEvent) => void
+export type SSEErrorHandler = (error: string) => void
+export type SSECompleteHandler = () => void
+
+// SSE 行解析结果接口
+export interface SSELineResult {
+  field: string
+  value: string
+}
+
+// SSE 解析后的数据接口
+interface SSEParsedData {
+  type?: string
+  runId?: string
+  mode?: string
+  topic?: string
+  sequence?: number
+  timestamp?: string
+  message?: string
+  message_?: string
+}
+
+// 定义有效的事件类型数组（避免索引访问类型）
+const VALID_STREAM_EVENT_TYPES: ArenaStreamEventType[] = [
+  'run_started', 'phase_started', 'message', 'phase_completed',
+  'summary_started', 'summary', 'done', 'error'
+]
+
+// 辅助函数：解析事件类型
+function parseStreamEventType(type: string): ArenaStreamEventType {
+  const validIndex: number = VALID_STREAM_EVENT_TYPES.indexOf(type as ArenaStreamEventType)
+  if (validIndex >= 0) {
+    return VALID_STREAM_EVENT_TYPES[validIndex]
+  }
+  return 'message'
+}
+
+// 辅助函数：解析 Arena 模式
+function parseStreamArenaMode(mode?: string): ArenaMode {
+  if (mode === 'debate') {
+    return 'debate'
+  }
+  return 'chat'
 }
 
 export class PersonaApi {
@@ -205,12 +251,20 @@ export class PersonaApi {
     return lastConnectionLabel
   }
 
+  static async checkHealth(): Promise<HealthCheckResponse | null> {
+    try {
+      return await requestJson<HealthCheckResponse>('/health', http.RequestMethod.GET, undefined, 10_000)
+    } catch (_error) {
+      return null
+    }
+  }
+
   static async getPresets(): Promise<PresetProfile[]> {
     try {
       const result = await requestJson<PresetsResponse>('/api/presets', http.RequestMethod.GET)
       return result.presets
     } catch (_error) {
-      markMock()
+      lastConnectionLabel = 'MOCK FALLBACK'
       return Promise.resolve(getPresetProfiles())
     }
   }
@@ -221,7 +275,7 @@ export class PersonaApi {
     } catch (error) {
       const mockBundle = buildMockBundle(profileId)
       if (mockBundle) {
-        markMock()
+        lastConnectionLabel = 'MOCK FALLBACK'
         return Promise.resolve(mockBundle)
       }
       throw new Error(formatThrownError(error as Object))
@@ -264,8 +318,102 @@ export class PersonaApi {
       const result = await requestJson<ArenaRunResponse>('/api/arena/run', http.RequestMethod.POST, arenaRequest, GENERATION_TIMEOUT_MS)
       return result.result
     } catch (_error) {
-      markMock()
+      lastConnectionLabel = 'MOCK FALLBACK'
       return Promise.resolve(buildArenaRun(topic, selectedAgents, mode))
+    }
+  }
+
+  static async streamArena(
+    topic: string,
+    selectedAgents: PersonaSpec[],
+    mode: ArenaMode = 'chat',
+    onEvent?: SSEEventHandler,
+    onError?: SSEErrorHandler,
+    onComplete?: SSECompleteHandler
+  ): Promise<void> {
+    const client = http.createHttp()
+
+    try {
+      const arenaRequest: ArenaRunRequest = buildArenaRunRequest(topic, mode, selectedAgents)
+
+      // SSE 流式请求
+      const response = await client.request(`${activeBaseUrl}/api/arena/stream`, {
+        method: http.RequestMethod.POST,
+        header: {
+          'Content-Type': 'application/json'
+        },
+        extraData: JSON.stringify(arenaRequest),
+        expectDataType: http.HttpDataType.STRING,
+        connectTimeout: GENERATION_TIMEOUT_MS,
+        readTimeout: GENERATION_TIMEOUT_MS
+      })
+
+      if (response.responseCode !== 200) {
+        throw new Error(`流式请求失败: ${response.responseCode}`)
+      }
+
+      const content = response.result as string
+      const lines = content.split('\n')
+
+      let eventData: Record<string, string> = {}
+      let eventType: string = ''
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+
+        if (!line.trim()) {
+          if (eventType && Object.keys(eventData).length > 0) {
+            const dataStr = eventData['data']
+            if (dataStr) {
+              try {
+                const parsedData: SSEParsedData = JSON.parse(dataStr)
+                const event: ArenaStreamEvent = {
+                  type: parseStreamEventType(eventType),
+                  runId: parsedData.runId ?? '',
+                  mode: parseStreamArenaMode(parsedData.mode),
+                  topic: parsedData.topic ?? '',
+                  sequence: parsedData.sequence ?? 0,
+                  timestamp: parsedData.timestamp ?? ''
+                }
+                onEvent?.(event)
+
+                if (eventType === 'done' || eventType === 'error') {
+                  if (eventType === 'done') {
+                    onComplete?.()
+                  }
+                  if (eventType === 'error') {
+                    const errorMsg: string = parsedData.message ?? parsedData.message_ ?? '流式传输错误'
+                    onError?.(errorMsg)
+                  }
+                  break
+                }
+              } catch (parseError) {
+                // 忽略解析错误
+              }
+            }
+          }
+          eventData = {}
+          eventType = ''
+          continue
+        }
+
+        const parsed = parseSSELine(line)
+        if (!parsed) {
+          continue
+        }
+
+        if (parsed.field === 'event') {
+          eventType = parsed.value
+        } else if (parsed.field === 'data') {
+          eventData['data'] = parsed.value
+        } else {
+          eventData[parsed.field] = parsed.value
+        }
+      }
+    } catch (error) {
+      onError?.(formatThrownError(error as Object))
+    } finally {
+      client.destroy()
     }
   }
 }

@@ -195,6 +195,7 @@ struct Index {
   }
 
   switchTab(index: number): void {
+    // Tab 切换带滑动效果
     animateTo({
       duration: 250,
       curve: Curve.EaseOut
@@ -292,10 +293,13 @@ struct Index {
     Column({ space: Spacing.card.large }) {
       RoleHomeActionCards({
         onCreateClick: () => {
-          this.openImportSheet('create')
+          router.pushUrl({ url: 'pages/CreateRole' })
         },
         onImportClick: () => {
           this.openImportSheet('import')
+        },
+        onExploreClick: () => {
+          router.pushUrl({ url: 'pages/ExplorePersonas' })
         }
       })
 
@@ -336,10 +340,11 @@ struct Index {
         .width('100%')
 
         Column({ space: Spacing.card.medium }) {
-          ForEach(this.allProfiles(), (profile: PresetProfile) => {
+          ForEach(this.allProfiles(), (profile: PresetProfile, index: number) => {
             RoleCard({
               profile: profile,
               isActive: this.selectedProfile.id === profile.id,
+              index: index,
               onCardClick: (p: PresetProfile) => {
                 void this.selectProfile(p)
               },

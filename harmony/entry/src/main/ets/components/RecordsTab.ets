@@ -3,37 +3,27 @@ import { Typography } from '../common/styles/Typography'
 import { BorderRadius } from '../common/styles/BorderRadius'
 import { Spacing } from '../common/styles/Spacing'
 
-// RecordItem 记录项接口（纪要列表卡片数据）
 export interface RecordItem {
   id: string
   title: string
-  /** 头像内短文案（一字或「我」） */
   participants: string[]
-  /** 展示用全名，如「秦始皇 / 乔布斯」 */
   participantLine: string
   avatarColors: string[]
-  /** 头像内文字颜色，与背景对比 */
   avatarTextColors: string[]
   content: string
   timeAgo: string
-  /** 左侧竖条强调色 */
   accentColor: string
-  /** 第二张头像是否显示火花图标（设计稿第二张卡） */
   secondAvatarSparkle?: boolean
 }
 
-// RecordsTab 组件属性
 export interface RecordsTabProps {
   records: RecordItem[]
   onRecordClick: (record: RecordItem) => void
 }
 
-// 纪要页内容预览区背景（设计稿浅灰）
 const RECORD_PREVIEW_BG: string = '#F5F7F9'
-// 卡片纯白底
 const RECORD_CARD_BG: string = '#FFFFFF'
 
-// RecordsTab 组件 - 纪要页面（灵感纪要列表）
 @Component
 export struct RecordsTab {
   @Prop records: RecordItem[] = []
@@ -42,12 +32,12 @@ export struct RecordsTab {
   private mockRecords: RecordItem[] = [
     {
       id: '1',
-      title: '关于"绝对权力下的孤独感"的探讨',
+      title: '关于“绝对权力下的孤独感”的探讨',
       participants: ['秦', '乔'],
       participantLine: '秦始皇 / 乔布斯',
       avatarColors: ['#FEE2E2', '#DBEAFE'],
       avatarTextColors: ['#DC2626', '#2563EB'],
-      content: '秦始皇认为权力需要绝对的集中来保证系统的运转，而乔布斯反驳道：没有对极简与纯粹的热爱，权力只会制造出平庸的废品...',
+      content: '秦始皇认为权力需要绝对集中来保证系统运转，而乔布斯反问：没有对极简与纯粹的热爱，权力只会制造出平庸的废品。',
       timeAgo: '2天前',
       accentColor: '#3B82F6',
       secondAvatarSparkle: false
@@ -59,7 +49,7 @@ export struct RecordsTab {
       participantLine: '我 / 融合意识',
       avatarColors: ['#F1F5F9', '#D1FAE5'],
       avatarTextColors: ['#64748B', '#059669'],
-      content: '融合意识指出：不要试图在第一份工作中寻找一生的意义，去打破既定的轨道，把它当作一个收集数据点的实验场...',
+      content: '融合意识指出：不要试图在第一份工作里寻找一生的意义，先去打破既定轨道，把它当作一个收集数据点的实验场。',
       timeAgo: '1周前',
       accentColor: '#14B8A6',
       secondAvatarSparkle: true
@@ -79,23 +69,49 @@ export struct RecordsTab {
 
   build() {
     Column({ space: Spacing.card.large }) {
-      Column({ space: Spacing.sm }) {
-        Text('灵感纪要')
-          .fontSize(Typography.size.xxl)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Colors.textPrimary)
+      Row() {
+        Column({ space: Spacing.sm }) {
+          Row({ space: Spacing.sm }) {
+            Column()
+              .width(24)
+              .height(3)
+              .borderRadius(1.5)
+              .backgroundColor('#6366F1')
 
-        Text('留存每一次思想的碰撞与回响')
-          .fontSize(Typography.size.bodyLg)
-          .fontColor(Colors.textTertiary)
+            Text('灵感纪要')
+              .fontSize(Typography.size.xxl)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(Colors.textPrimary)
+          }
+
+          Text('留存每一次思想碰撞留下的回响与偏移')
+            .fontSize(Typography.size.bodyLg)
+            .fontColor(Colors.textTertiary)
+        }
+        .alignItems(HorizontalAlign.Start)
+
+        Blank()
+
+        Text(`${this.listSource().length} 条`)
+          .fontSize(Typography.size.xs)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(Colors.primary)
+          .padding({
+            left: Spacing.sm,
+            right: Spacing.sm,
+            top: 4,
+            bottom: 4
+          })
+          .backgroundColor('rgba(99, 102, 241, 0.08)')
+          .borderRadius(BorderRadius.pill)
       }
       .width('100%')
-      .alignItems(HorizontalAlign.Start)
+      .alignItems(VerticalAlign.Top)
       .padding({ top: Spacing.lg })
 
       Column({ space: 16 }) {
-        ForEach(this.listSource(), (record: RecordItem) => {
-          this.buildRecordCard(record)
+        ForEach(this.listSource(), (record: RecordItem, index: number) => {
+          this.buildRecordCard(record, index)
         }, (record: RecordItem) => record.id)
       }
       .width('100%')
@@ -108,10 +124,10 @@ export struct RecordsTab {
   }
 
   @Builder
-  buildRecordCard(record: RecordItem) {
+  buildRecordCard(record: RecordItem, index: number) {
     Row() {
       Column()
-        .width(5)
+        .width(6)
         .backgroundColor(record.accentColor)
         .alignSelf(ItemAlign.Stretch)
 
@@ -126,50 +142,78 @@ export struct RecordsTab {
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .textAlign(TextAlign.Start)
 
-          Row({ space: 4 }) {
-            Text('🕐')
-              .fontSize(12)
-            Text(record.timeAgo)
-              .fontSize(Typography.size.xs)
-              .fontColor(Colors.textMuted)
-          }
-          .alignItems(VerticalAlign.Center)
+          Text(record.timeAgo)
+            .fontSize(Typography.size.xs)
+            .fontColor(Colors.textMuted)
+            .padding({
+              left: Spacing.sm,
+              right: Spacing.sm,
+              top: 4,
+              bottom: 4
+            })
+            .backgroundColor('rgba(241, 245, 249, 0.80)')
+            .borderRadius(BorderRadius.pill)
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
 
         Row({ space: 10 }) {
           Row() {
-            ForEach(record.participants, (_name: string, index: number) => {
-              this.buildAvatarCell(record, index)
-            }, (_name: string, index: number) => `${record.id}-av-${index}`)
+            ForEach(record.participants, (_name: string, avatarIndex: number) => {
+              this.buildAvatarCell(record, avatarIndex)
+            }, (_name: string, avatarIndex: number) => `${record.id}-av-${avatarIndex}`)
           }
           .alignItems(VerticalAlign.Center)
 
-          Text(record.participantLine)
-            .fontSize(Typography.size.caption)
-            .fontColor(Colors.textTertiary)
-            .fontWeight(FontWeight.Medium)
-            .layoutWeight(1)
+          Column({ space: 4 }) {
+            Text(record.participantLine)
+              .fontSize(Typography.size.caption)
+              .fontColor(Colors.textTertiary)
+              .fontWeight(FontWeight.Medium)
+
+            Text('已保存的思想交汇片段')
+              .fontSize(Typography.size.xs)
+              .fontColor(Colors.textMuted)
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
 
-        Text(record.content)
-          .fontSize(Typography.size.caption)
-          .fontColor(Colors.textSecondary)
-          .lineHeight(20)
-          .maxLines(3)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-          .padding({
-            left: 12,
-            right: 12,
-            top: 10,
-            bottom: 10
-          })
-          .backgroundColor(RECORD_PREVIEW_BG)
-          .borderRadius(BorderRadius.md)
+        Column({ space: Spacing.sm }) {
+          Row({ space: 6 }) {
+            Column()
+              .width(18)
+              .height(18)
+              .borderRadius(9)
+              .backgroundColor('rgba(99, 102, 241, 0.08)')
+              .justifyContent(FlexAlign.Center)
+              .alignItems(HorizontalAlign.Center)
+
+            Text('内容预览')
+              .fontSize(Typography.size.xs)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(Colors.primary)
+          }
+
+          Text(record.content)
+            .fontSize(Typography.size.caption)
+            .fontColor(Colors.textSecondary)
+            .lineHeight(20)
+            .maxLines(3)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .width('100%')
+            .padding({
+              left: 12,
+              right: 12,
+              top: 10,
+              bottom: 10
+            })
+            .backgroundColor(RECORD_PREVIEW_BG)
+            .borderRadius(BorderRadius.md)
+        }
+        .width('100%')
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
@@ -185,11 +229,15 @@ export struct RecordsTab {
     .borderRadius(BorderRadius.xxl2)
     .clip(true)
     .shadow({
-      radius: 24,
-      color: 'rgba(15, 23, 42, 0.08)',
+      radius: 22,
+      color: index === 0 ? 'rgba(15, 23, 42, 0.10)' : 'rgba(15, 23, 42, 0.07)',
       offsetX: 0,
       offsetY: 6
     })
+    .transition(TransitionEffect.OPACITY.animation({
+      duration: 220 + index * 50,
+      curve: Curve.EaseOut
+    }))
     .onClick(() => {
       this.onRecordClick(record)
     })
@@ -199,7 +247,7 @@ export struct RecordsTab {
   buildAvatarCell(record: RecordItem, index: number) {
     if (record.secondAvatarSparkle === true && index === 1) {
       Column() {
-        Text('✨')
+        Text('✦')
           .fontSize(11)
       }
       .width(28)
