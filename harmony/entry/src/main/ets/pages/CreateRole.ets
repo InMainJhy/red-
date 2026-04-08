@@ -17,6 +17,50 @@ interface TabItem {
   iconType: IconType
 }
 
+interface MockWeChatRecord {
+  id: string
+  contactName: string
+  title: string
+  preview: string
+  biography: string
+}
+
+interface AIDialogMessage {
+  id: string
+  sender: string
+  text: string
+}
+
+const MOCK_WECHAT_RECORDS: MockWeChatRecord[] = [
+  {
+    id: 'dad',
+    contactName: '爸爸',
+    title: '爸爸（家庭群）.txt',
+    preview: '“别太拼，注意按时吃饭。工作是做不完的，人要先顾好自己。”',
+    biography: '爸爸的聊天记录显示他是典型务实型长辈，表达克制但非常关心家人。常提醒作息、饮食和财务规划，价值观偏稳定与责任，遇事先考虑风险和长期后果。说话简短直接，但会在细节处给支持。'
+  },
+  {
+    id: 'mom',
+    contactName: '妈妈',
+    title: '妈妈（私聊）.txt',
+    preview: '“今天降温了，多穿一件。你忙的时候也要记得回我一句平安。”',
+    biography: '妈妈的聊天记录体现出高情绪敏感与照料倾向，擅长通过日常问候建立安全感。沟通温柔细腻，关注身体状态和情绪波动，处理冲突时更倾向安抚与协商。人物特征偏共情、耐心、重家庭联结。'
+  },
+  {
+    id: 'boyfriend',
+    contactName: '男朋友',
+    title: '男朋友（置顶聊天）.txt',
+    preview: '“你想冲就冲，我在。要是累了我们就先停一下，慢慢来。”',
+    biography: '男朋友的聊天记录呈现出陪伴型与鼓励型特征，表达风格轻松直接，注重“同频沟通”和及时反馈。面对压力议题时偏支持探索，强调尊重个人选择，同时具备一定行动导向和问题拆解能力。'
+  }
+]
+
+const AI_PERSONALITY_QUESTIONS: string[] = [
+  '当计划被临时打乱时，你通常会怎么做？',
+  '在团队讨论中，你更常扮演推动决策的人，还是倾听协调的人？',
+  '面对长期压力时，你一般靠什么方式恢复状态？'
+]
+
 @Entry
 @Component
 export struct CreateRole {
@@ -30,6 +74,17 @@ export struct CreateRole {
 
   @State private contentOpacity: number = 0
   @State private contentTranslateY: number = 30
+  @State private showWeChatPicker: boolean = false
+  @State private selectedWeChatRecordId: string = ''
+  @State private showAIDialogueModal: boolean = false
+  @State private aiInputText: string = ''
+  @State private aiMessages: AIDialogMessage[] = []
+  @State private aiStep: number = 0
+  @State private aiQuestionIndex: number = 0
+  @State private aiNameAnswer: string = ''
+  @State private aiBackgroundAnswer: string = ''
+  @State private aiPersonalityAnswers: string[] = []
+  @State private aiConversationDone: boolean = false
 
   aboutToAppear(): void {
     this.loadSafeInsets()
@@ -111,11 +166,137 @@ export struct CreateRole {
   }
 
   uploadWeChat(): void {
-    promptAction.showToast({ message: '请选择微信聊天记录文件（仅支持 .txt 格式）' })
+    this.showWeChatPicker = true
+  }
+
+  closeWeChatPicker(): void {
+    this.showWeChatPicker = false
+  }
+
+  selectMockWeChatRecord(record: MockWeChatRecord): void {
+    this.selectedWeChatRecordId = record.id
+    this.roleName = record.contactName
+    this.biography = record.biography
+    this.currentTab = 0
+    this.showWeChatPicker = false
+    promptAction.showToast({ message: `已选择 ${record.title}` })
+  }
+
+  getSelectedWeChatRecord(): MockWeChatRecord | null {
+    const found = MOCK_WECHAT_RECORDS.find((item: MockWeChatRecord) => item.id === this.selectedWeChatRecordId)
+    return found ? found : null
+  }
+
+  getSelectedWeChatRecordTitle(): string {
+    const selected = this.getSelectedWeChatRecord()
+    return selected ? selected.title : ''
   }
 
   startAIDialogue(): void {
-    promptAction.showToast({ message: 'AI对话功能开发中...' })
+    this.showAIDialogueModal = true
+    this.aiInputText = ''
+    this.aiMessages = []
+    this.aiStep = 0
+    this.aiQuestionIndex = 0
+    this.aiNameAnswer = ''
+    this.aiBackgroundAnswer = ''
+    this.aiPersonalityAnswers = []
+    this.aiConversationDone = false
+    this.appendAIMessage('你好，我会帮你生成角色画像。我们先从姓名开始，请告诉我这个角色的姓名。')
+  }
+
+  closeAIDialogueModal(): void {
+    this.showAIDialogueModal = false
+  }
+
+  appendAIMessage(text: string): void {
+    const next: AIDialogMessage = {
+      id: `ai-${this.aiMessages.length + 1}`,
+      sender: 'ai',
+      text
+    }
+    this.aiMessages = [...this.aiMessages, next]
+  }
+
+  appendUserMessage(text: string): void {
+    const next: AIDialogMessage = {
+      id: `user-${this.aiMessages.length + 1}`,
+      sender: 'user',
+      text
+    }
+    this.aiMessages = [...this.aiMessages, next]
+  }
+
+  submitAIDialogueInput(): void {
+    const text = this.aiInputText.trim()
+    if (!text) {
+      promptAction.showToast({ message: '请输入内容后再发送' })
+      return
+    }
+
+    this.appendUserMessage(text)
+    this.aiInputText = ''
+
+    if (this.aiStep === 0) {
+      this.aiNameAnswer = text
+      this.roleName = text
+      this.aiStep = 1
+      this.appendAIMessage(`好的，${text}。接下来请介绍一下 Ta 的背景经历（成长环境、关键事件、关系状态等）。`)
+      return
+    }
+
+    if (this.aiStep === 1) {
+      this.aiBackgroundAnswer = text
+      this.aiStep = 2
+      this.aiQuestionIndex = 0
+      this.appendAIMessage('收到。最后我会通过 3 个简短性格测试题来补全人格。')
+      this.appendAIMessage(`1/3 ${AI_PERSONALITY_QUESTIONS[0]}`)
+      return
+    }
+
+    if (this.aiStep === 2) {
+      this.aiPersonalityAnswers = [...this.aiPersonalityAnswers, text]
+      if (this.aiQuestionIndex < AI_PERSONALITY_QUESTIONS.length - 1) {
+        this.aiQuestionIndex = this.aiQuestionIndex + 1
+        const nextIndex = this.aiQuestionIndex + 1
+        this.appendAIMessage(`${nextIndex}/3 ${AI_PERSONALITY_QUESTIONS[this.aiQuestionIndex]}`)
+        return
+      }
+
+      this.aiStep = 3
+      this.aiConversationDone = true
+      this.biography = this.buildAIBiography()
+      this.currentTab = 0
+      promptAction.showToast({ message: 'AI对话已完成，信息已回填' })
+      this.closeAIDialogueModal()
+    }
+  }
+
+  buildAIBiography(): string {
+    const personalitySummary = this.buildPersonalitySummary()
+    const answerSummary = this.aiPersonalityAnswers.map((item: string, index: number) => {
+      return `Q${index + 1}: ${item}`
+    }).join('；')
+
+    const composed = `${this.aiBackgroundAnswer}\n\n【性格画像】${personalitySummary}\n【测试回答】${answerSummary}`
+    if (composed.length > 500) {
+      return `${composed.slice(0, 496)}...`
+    }
+    return composed
+  }
+
+  buildPersonalitySummary(): string {
+    const answers = this.aiPersonalityAnswers.join('；')
+    if (answers.includes('计划') || answers.includes('安排') || answers.includes('清单')) {
+      return '偏理性规划型，重视秩序与执行。'
+    }
+    if (answers.includes('沟通') || answers.includes('协调') || answers.includes('倾听')) {
+      return '偏共情协调型，重视关系和氛围。'
+    }
+    if (answers.includes('行动') || answers.includes('尝试') || answers.includes('直接')) {
+      return '偏行动探索型，倾向快速试错与推进。'
+    }
+    return '性格较均衡，兼具思考、共情与行动能力。'
   }
 
   getNameInitial(): string {
@@ -345,6 +526,27 @@ export struct CreateRole {
         })
         .onClick(() => this.uploadWeChat())
 
+      if (this.selectedWeChatRecordId.length > 0) {
+        Row({ space: Spacing.xs }) {
+          Icon({
+            iconType: 'check',
+            iconSize: 14,
+            iconColor: MintColors.mintDark
+          })
+          Text(`已选择：${this.getSelectedWeChatRecordTitle()}`)
+            .fontSize(Typography.size.caption)
+            .fontColor(MintColors.mintDark)
+        }
+        .padding({
+          left: Spacing.sm,
+          right: Spacing.sm,
+          top: 6,
+          bottom: 6
+        })
+        .backgroundColor(MintColors.mintPale)
+        .borderRadius(BorderRadius.pill)
+      }
+
       Row() {
         Text('支持格式：')
           .fontSize(Typography.size.caption)
@@ -527,12 +729,234 @@ export struct CreateRole {
       .scrollable(ScrollDirection.Vertical)
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
+
+      if (this.showWeChatPicker) {
+        this.buildMockWeChatPicker()
+      }
+
+      if (this.showAIDialogueModal) {
+        this.buildAIDialogueModal()
+      }
     }
     .width('100%')
     .height('100%')
     .backgroundColor(MintColors.background)
     .opacity(this.contentOpacity)
     .translate({ x: 0, y: this.contentTranslateY })
+  }
+
+  @Builder
+  buildMockWeChatPicker() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(15, 23, 42, 0.36)')
+        .onClick(() => this.closeWeChatPicker())
+
+      Column({ space: Spacing.md }) {
+        Row() {
+          Text('选择微信聊天记录')
+            .fontSize(Typography.size.subtitle)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(MintColors.textPrimary)
+          Blank()
+          Text('模拟数据')
+            .fontSize(Typography.size.xs)
+            .fontColor(MintColors.lavenderDark)
+            .padding({
+              left: Spacing.sm,
+              right: Spacing.sm,
+              top: 4,
+              bottom: 4
+            })
+            .backgroundColor(MintColors.lavenderPale)
+            .borderRadius(BorderRadius.pill)
+        }
+        .width('100%')
+
+        Text('请选择要导入的聊天对象，系统会自动提取人物画像用于创建角色。')
+          .fontSize(Typography.size.caption)
+          .fontColor(MintColors.textSecondary)
+          .width('100%')
+
+        Column({ space: Spacing.sm }) {
+          ForEach(MOCK_WECHAT_RECORDS, (item: MockWeChatRecord) => {
+            Column({ space: 6 }) {
+              Row() {
+                Text(item.contactName)
+                  .fontSize(Typography.size.bodyLg)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(MintColors.textPrimary)
+                Blank()
+                Text(item.title)
+                  .fontSize(Typography.size.xs)
+                  .fontColor(MintColors.textMuted)
+              }
+              .width('100%')
+
+              Text(item.preview)
+                .fontSize(Typography.size.caption)
+                .fontColor(MintColors.textSecondary)
+                .maxLines(2)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+            .width('100%')
+            .padding(Spacing.md)
+            .backgroundColor(MintColors.surface)
+            .borderRadius(BorderRadius.xl)
+            .border({
+              width: 0.5,
+              color: MintColors.border,
+              radius: BorderRadius.xl
+            })
+            .onClick(() => this.selectMockWeChatRecord(item))
+          }, (item: MockWeChatRecord) => item.id)
+        }
+        .width('100%')
+
+        Button('取消')
+          .width('100%')
+          .height(44)
+          .fontSize(Typography.size.body)
+          .fontColor(MintColors.textSecondary)
+          .backgroundColor(MintColors.backgroundSecondary)
+          .borderRadius(BorderRadius.xxl)
+          .onClick(() => this.closeWeChatPicker())
+      }
+      .width('88%')
+      .padding(Spacing.card.large)
+      .backgroundColor(MintColors.cardPrimary)
+      .borderRadius(BorderRadius.xxl)
+      .border({
+        width: 0.5,
+        color: MintColors.border,
+        radius: BorderRadius.xxl
+      })
+      .shadow({
+        radius: 26,
+        color: 'rgba(15, 23, 42, 0.12)',
+        offsetX: 0,
+        offsetY: 10
+      })
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  buildAIDialogueModal() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(15, 23, 42, 0.36)')
+        .onClick(() => this.closeAIDialogueModal())
+
+      Column({ space: Spacing.md }) {
+        Row() {
+          Text('AI 角色访谈')
+            .fontSize(Typography.size.subtitle)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(MintColors.textPrimary)
+          Blank()
+          Button('关闭')
+            .height(30)
+            .fontSize(Typography.size.caption)
+            .fontColor(MintColors.textSecondary)
+            .backgroundColor(MintColors.backgroundSecondary)
+            .borderRadius(BorderRadius.pill)
+            .onClick(() => this.closeAIDialogueModal())
+        }
+        .width('100%')
+
+        Scroll() {
+          Column({ space: Spacing.sm }) {
+            ForEach(this.aiMessages, (item: AIDialogMessage) => {
+              Row() {
+                if (item.sender === 'ai') {
+                  Row() {
+                    Text(item.text)
+                      .fontSize(Typography.size.body)
+                      .fontColor(MintColors.textPrimary)
+                  }
+                  .padding(Spacing.sm)
+                  .backgroundColor(MintColors.background)
+                  .borderRadius(BorderRadius.xl)
+                  Blank()
+                } else {
+                  Blank()
+                  Row() {
+                    Text(item.text)
+                      .fontSize(Typography.size.body)
+                      .fontColor('#FFFFFF')
+                  }
+                  .padding(Spacing.sm)
+                  .backgroundColor(MintColors.mintDark)
+                  .borderRadius(BorderRadius.xl)
+                }
+              }
+              .width('100%')
+            }, (item: AIDialogMessage) => item.id)
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .height(300)
+        .scrollable(ScrollDirection.Vertical)
+        .scrollBar(BarState.Off)
+
+        Row({ space: Spacing.xs }) {
+          TextInput({
+            text: this.aiInputText,
+            placeholder: this.aiConversationDone ? '对话已完成' : '输入你的回答...'
+          })
+            .layoutWeight(1)
+            .height(42)
+            .fontSize(Typography.size.body)
+            .fontColor(MintColors.textPrimary)
+            .placeholderColor(MintColors.textPlaceholder)
+            .backgroundColor(MintColors.surface)
+            .borderRadius(BorderRadius.xxl)
+            .padding({ left: Spacing.md, right: Spacing.md })
+            .onChange((value: string) => {
+              this.aiInputText = value
+            })
+
+          Button(this.aiConversationDone ? '完成' : '发送')
+            .height(42)
+            .fontSize(Typography.size.caption)
+            .fontColor('#FFFFFF')
+            .backgroundColor(this.aiConversationDone ? MintColors.textMuted : MintColors.mint)
+            .borderRadius(BorderRadius.xxl)
+            .onClick(() => {
+              if (this.aiConversationDone) {
+                this.closeAIDialogueModal()
+              } else {
+                this.submitAIDialogueInput()
+              }
+            })
+        }
+        .width('100%')
+      }
+      .width('90%')
+      .padding(Spacing.card.large)
+      .backgroundColor(MintColors.cardPrimary)
+      .borderRadius(BorderRadius.xxl)
+      .border({
+        width: 0.5,
+        color: MintColors.border,
+        radius: BorderRadius.xxl
+      })
+      .shadow({
+        radius: 26,
+        color: 'rgba(15, 23, 42, 0.12)',
+        offsetX: 0,
+        offsetY: 10
+      })
+    }
+    .width('100%')
+    .height('100%')
   }
 
   @Builder
