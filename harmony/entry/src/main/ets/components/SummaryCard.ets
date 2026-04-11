@@ -15,13 +15,41 @@ export interface SummaryCardProps {
 // SummaryCard 组件 - 清新风格会议纪要卡片
 @Component
 export struct SummaryCard {
-  @Prop summaryTitle: string = ''
-  @Prop consensus: string = ''
-  @Prop disagreements: string[] = []
-  @Prop actionableAdvice: string[] = []
-  @Prop narrativeHook: string = ''
-  onGoArena: () => void = () => {}
-  onGoRole: () => void = () => {}
+  @Prop public summaryTitle: string = ''
+  @Prop public consensus: string = ''
+  @Prop public disagreements: string[] = []
+  @Prop public actionableAdvice: string[] = []
+  @Prop public narrativeHook: string = ''
+  @State private cardOpacity: number = 0
+  @State private cardScale: number = 0.95
+  @State private itemsOpacity: number = 0
+  public onGoArena: () => void = () => {}
+  public onGoRole: () => void = () => {}
+
+  aboutToAppear(): void {
+    if (this.summaryTitle.length > 0) {
+      // 卡片入场
+      setTimeout(() => {
+        animateTo({
+          duration: 400,
+          curve: Curve.FastOutSlowIn
+        }, () => {
+          this.cardOpacity = 1
+          this.cardScale = 1
+        })
+      }, 0)
+
+      // 内容项延迟淡入
+      setTimeout(() => {
+        animateTo({
+          duration: 350,
+          curve: Curve.FastOutSlowIn
+        }, () => {
+          this.itemsOpacity = 1
+        })
+      }, 200)
+    }
+  }
 
   build() {
     if (this.summaryTitle.length > 0) {
@@ -32,6 +60,7 @@ export struct SummaryCard {
           .fontWeight(FontWeight.Bold)
           .fontColor(Colors.textPrimary)
           .width('100%')
+          .opacity(this.cardOpacity)
 
         // 共识
         Text(this.consensus)
@@ -39,11 +68,13 @@ export struct SummaryCard {
           .fontColor(Colors.textSecondary)
           .lineHeight(Typography.lineHeight.relaxed)
           .width('100%')
+          .opacity(this.itemsOpacity)
 
         // 分隔线
         Divider()
           .color(Colors.borderLight)
           .margin({ top: Spacing.md, bottom: Spacing.md })
+          .opacity(this.itemsOpacity)
 
         // 主要分歧
         Text('主要分歧')
@@ -51,8 +82,9 @@ export struct SummaryCard {
           .fontWeight(FontWeight.Bold)
           .fontColor(Colors.textTertiary)
           .width('100%')
+          .opacity(this.itemsOpacity)
 
-        ForEach(this.disagreements, (item: string) => {
+        ForEach(this.disagreements, (item: string, index: number) => {
           Row({ space: Spacing.sm }) {
             Text('•')
               .fontSize(Typography.size.body)
@@ -63,12 +95,23 @@ export struct SummaryCard {
               .lineHeight(Typography.lineHeight.relaxed)
           }
           .width('100%')
+          .opacity(this.itemsOpacity)
+          .translate({
+            x: this.itemsOpacity > 0 ? 0 : -10,
+            y: 0
+          })
+          .animation({
+            duration: 300,
+            curve: Curve.FastOutSlowIn,
+            delay: 250 + index * 50
+          })
         }, (item: string) => item)
 
         // 分隔线
         Divider()
           .color(Colors.borderLight)
           .margin({ top: Spacing.md, bottom: Spacing.md })
+          .opacity(this.itemsOpacity)
 
         // 行动建议
         Text('行动建议')
@@ -76,8 +119,9 @@ export struct SummaryCard {
           .fontWeight(FontWeight.Bold)
           .fontColor(Colors.textTertiary)
           .width('100%')
+          .opacity(this.itemsOpacity)
 
-        ForEach(this.actionableAdvice, (item: string) => {
+        ForEach(this.actionableAdvice, (item: string, index: number) => {
           Row({ space: Spacing.sm }) {
             Text('•')
               .fontSize(Typography.size.body)
@@ -88,6 +132,16 @@ export struct SummaryCard {
               .lineHeight(Typography.lineHeight.relaxed)
           }
           .width('100%')
+          .opacity(this.itemsOpacity)
+          .translate({
+            x: this.itemsOpacity > 0 ? 0 : -10,
+            y: 0
+          })
+          .animation({
+            duration: 300,
+            curve: Curve.FastOutSlowIn,
+            delay: 300 + index * 50
+          })
         }, (item: string) => item)
 
         // 叙事钩子
@@ -100,12 +154,18 @@ export struct SummaryCard {
             .backgroundColor(Colors.accentPurple)
             .borderRadius(BorderRadius.huge)
             .width('100%')
+            .opacity(this.itemsOpacity)
+            .scale({
+              x: this.itemsOpacity * 0.05 + 0.95,
+              y: this.itemsOpacity * 0.05 + 0.95
+            })
         }
 
         // 分隔线
         Divider()
           .color(Colors.borderLight)
           .margin({ top: Spacing.md })
+          .opacity(this.itemsOpacity)
 
         // 操作按钮
         Row({ space: Spacing.card.large }) {
@@ -146,6 +206,7 @@ export struct SummaryCard {
             })
         }
         .width('100%')
+        .opacity(this.itemsOpacity)
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -159,10 +220,11 @@ export struct SummaryCard {
         offsetX: 0,
         offsetY: 8
       })
-      .transition(TransitionEffect.OPACITY.animation({
-        duration: 300,
-        curve: Curve.EaseOut
-      }))
+      .opacity(this.cardOpacity)
+      .scale({
+        x: this.cardScale,
+        y: this.cardScale
+      })
     } else {
       Column({ space: Spacing.md }) {
         Text('暂无纪要')

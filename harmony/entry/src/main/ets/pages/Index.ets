@@ -1,11 +1,24 @@
 import { router } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
-import { ArenaMessage, ArenaMode, PersonaSpec, PresetProfile, ProfileBundle, SourceDocumentSummary, TimelineNode, EMPTY_PROFILE } from '../common/Models'
+import pasteboard from '@ohos.pasteboard'
+import promptAction from '@ohos.promptAction'
+import {
+  ArenaMessage,
+  ArenaMode,
+  ArenaRunHistoryItem,
+  PersonaSpec,
+  PresetProfile,
+  ProfileBundle,
+  SourceDocumentSummary,
+  TimelineNode,
+  EMPTY_PROFILE
+} from '../common/Models'
 import { fetchSafeAreaInsets } from '../common/WindowSafeArea'
 import { PersonaApi } from '../service/PersonaApi'
+import { formatTimeAgo, getAvatarTextColor, getParticipantColor } from '../service/SummaryService'
 import { Colors } from '../common/styles/Colors'
 import { Typography } from '../common/styles/Typography'
-import { Spacing } from '../common/styles/Spacing'
+import { Spacing, MobileSpacing } from '../common/styles/Spacing'
 import { BorderRadius } from '../common/styles/BorderRadius'
 import {
   HeroSection,
@@ -13,7 +26,6 @@ import {
   ErrorToast,
   RoleCard,
   TabBar,
-  ArenaTab,
   RecordsTab,
   RecordItem,
   RoleHomeActionCards,
@@ -42,6 +54,14 @@ struct Index {
   @State loading: string = ''
   @State error: string = ''
   @State activeTab: number = 0
+  @State rolePaneOpacity: number = 1
+  @State rolePaneY: number = 0
+  @State arenaTitleOpacity: number = 0
+  @State arenaTitleY: number = 18
+  @State arenaBodyOpacity: number = 0
+  @State arenaBodyY: number = 22
+  @State recordsPaneOpacity: number = 0
+  @State recordsPaneY: number = 16
   @State rolePanel: number = 0
   @State showImportForm: boolean = false
   @State importFormExpanded: boolean = false
@@ -75,6 +95,11 @@ struct Index {
   aboutToAppear(): void {
     void this.hydratePresets()
     this.loadSafeInsets()
+    void this.loadMeetingRecords()
+  }
+
+  onPageShow(): void {
+    void this.loadMeetingRecords()
   }
 
   loadSafeInsets(): void {
@@ -186,21 +211,127 @@ struct Index {
       return
     }
 
-    if (this.selectedAgentIds.length >= 3) {
-      this.selectedAgentIds = [...this.selectedAgentIds.slice(1), agentId]
-      return
-    }
-
     this.selectedAgentIds = [...this.selectedAgentIds, agentId]
   }
 
   switchTab(index: number): void {
-    // Tab 切换带滑动效果
+    if (index === 1) {
+      this.arenaTitleOpacity = 0
+      this.arenaTitleY = 18
+      this.arenaBodyOpacity = 0
+      this.arenaBodyY = 22
+    } else if (index === 2) {
+      this.recordsPaneOpacity = 0
+      this.recordsPaneY = 16
+    } else if (index === 0) {
+      this.rolePaneOpacity = 0
+      this.rolePaneY = 14
+    }
+
     animateTo({
-      duration: 250,
-      curve: Curve.EaseOut
+      duration: 220,
+      curve: Curve.FastOutSlowIn
     }, () => {
       this.activeTab = index
+      if (index === 2) {
+        void this.loadMeetingRecords()
+      }
+    })
+
+    if (index === 1) {
+      setTimeout(() => {
+        animateTo({
+          duration: 380,
+          curve: Curve.FastOutSlowIn
+        }, () => {
+          this.arenaTitleOpacity = 1
+          this.arenaTitleY = 0
+        })
+      }, 48)
+      setTimeout(() => {
+        animateTo({
+          duration: 440,
+          curve: Curve.Friction
+        }, () => {
+          this.arenaBodyOpacity = 1
+          this.arenaBodyY = 0
+        })
+      }, 120)
+    } else if (index === 2) {
+      setTimeout(() => {
+        animateTo({
+          duration: 400,
+          curve: Curve.FastOutSlowIn
+        }, () => {
+          this.recordsPaneOpacity = 1
+          this.recordsPaneY = 0
+        })
+      }, 40)
+    } else if (index === 0) {
+      setTimeout(() => {
+        animateTo({
+          duration: 360,
+          curve: Curve.FastOutSlowIn
+        }, () => {
+          this.rolePaneOpacity = 1
+          this.rolePaneY = 0
+        })
+      }, 0)
+    }
+  }
+
+  mapHistoryItemToRecord(item: ArenaRunHistoryItem): RecordItem {
+    const names = item.participantNames
+    const avatarColors = names.map((_n: string, idx: number) => getParticipantColor(idx))
+    const avatarTextColors = names.map((_n: string, idx: number) => getAvatarTextColor(idx))
+    const title = item.title && item.title.length > 0
+      ? item.title
+      : (item.summaryTitle && item.summaryTitle.length > 0 ? item.summaryTitle : '会议纪要')
+    const content = item.consensusPreview && item.consensusPreview.length > 0
+      ? item.consensusPreview
+      : (item.consensus && item.consensus.length > 0 ? item.consensus : '')
+    const participantLine = names.length > 0 ? names.join(' · ') : '暂无参会者'
+    return {
+      id: item.runId,
+      title: title,
+      topic: item.topic,
+      participants: names,
+      participantLine: participantLine,
+      avatarColors: avatarColors,
+      avatarTextColors: avatarTextColors,
+      content: content,
+      timeAgo: item.createdAt ? formatTimeAgo(item.createdAt) : '刚刚',
+      accentColor: avatarColors.length > 0 ? avatarColors[0] : Colors.primary,
+      messageCount: item.messageCount !== undefined ? item.messageCount : 0,
+      highlightCount: 0,
+      durationLabel: item.mode === 'debate' ? '辩论' : '对谈',
+      isFavorite: false
+    }
+  }
+
+  async loadMeetingRecords(): Promise<void> {
+    try {
+      const history = await PersonaApi.getArenaHistory(50)
+      this.records = history.runs.map((run: ArenaRunHistoryItem) => this.mapHistoryItemToRecord(run))
+      this.refreshConnectionLabel()
+    } catch (_error) {
+      this.refreshConnectionLabel()
+    }
+  }
+
+  async handleGenerateShareCard(record: RecordItem): Promise<void> {
+    if (record.id.length === 0) {
+      this.error = '缺少会议 runId，无法生成卡片'
+      return
+    }
+    this.loading = ''
+    this.refreshConnectionLabel()
+    router.pushUrl({
+      url: 'pages/PosterPreviewPage',
+      params: {
+        arenaRunId: record.id,
+        title: record.title
+      }
     })
   }
 
@@ -265,6 +396,7 @@ struct Index {
       this.actionableAdvice = result.summary.actionableAdvice
       this.narrativeHook = result.summary.narrativeHook
       this.refreshConnectionLabel()
+      void this.loadMeetingRecords()
     } catch (error) {
       this.error = this.normalizeError(error as Object)
       this.refreshConnectionLabel()
@@ -329,7 +461,7 @@ struct Index {
         })
       }
 
-      Column({ space: Spacing.md }) {
+      Column({ space: MobileSpacing.md }) {
         Row() {
           Text(`已收集的切片 (${this.allProfiles().length})`)
             .fontSize(Typography.size.sm)
@@ -339,7 +471,7 @@ struct Index {
         }
         .width('100%')
 
-        Column({ space: Spacing.card.medium }) {
+        Column({ space: MobileSpacing.card.medium }) {
           ForEach(this.allProfiles(), (profile: PresetProfile, index: number) => {
             RoleCard({
               profile: profile,
@@ -359,34 +491,144 @@ struct Index {
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  buildArenaTab() {
-    ArenaTab({
-      agents: this.agents,
-      selectedAgentIds: this.selectedAgentIds,
-      topic: this.topic,
-      isLoading: this.loading.length > 0,
-      onToggleAgent: (agentId: string) => {
-        this.toggleAgent(agentId)
-      },
-      onTopicChange: (value: string) => {
-        this.topic = value
-      },
-      onStartDiscussion: () => {
-        void this.runDiscussion()
-      }
+    .opacity(this.rolePaneOpacity)
+    .translate({ y: this.rolePaneY })
+    .animation({
+      duration: 360,
+      curve: Curve.FastOutSlowIn
     })
   }
 
   @Builder
-  buildRecordsTab() {
-    RecordsTab({
-      records: this.records,
-      onRecordClick: (record: RecordItem) => {
-        // 处理记录点击
+  buildArenaTab() {
+    Column({ space: MobileSpacing.card.large }) {
+      Column({ space: MobileSpacing.sm }) {
+        Text('人格会议')
+          .fontSize(Typography.size.xl)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(Colors.textPrimary)
+
+        Text('选择人物的不同人生阶段人格，让他们围绕议题展开讨论，汇聚多元观点。')
+          .fontSize(Typography.size.body)
+          .fontColor(Colors.textTertiary)
       }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .opacity(this.arenaTitleOpacity)
+      .translate({ y: this.arenaTitleY })
+      .animation({
+        duration: 400,
+        curve: Curve.FastOutSlowIn
+      })
+
+      Column({ space: MobileSpacing.md }) {
+        if (this.selectedProfile.id.length > 0) {
+          Column({ space: MobileSpacing.md }) {
+            Text(`当前人物：${this.selectedProfile.displayName}`)
+              .fontSize(Typography.size.bodyLg)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(Colors.textPrimary)
+
+            Text(`可选人格阶段：${this.agents.length} 个`)
+              .fontSize(Typography.size.body)
+              .fontColor(Colors.textSecondary)
+          }
+          .width('100%')
+          .padding(MobileSpacing.card.large)
+          .backgroundColor(Colors.cardPrimary)
+          .borderRadius(BorderRadius.huge)
+        }
+
+        Button('开始人格会议')
+          .width('100%')
+          .height(44)
+          .fontSize(Typography.size.bodyLg)
+          .fontColor('#FFFFFF')
+          .backgroundColor(Colors.primary)
+          .borderRadius(BorderRadius.huge)
+          .stateEffect(true)
+          .enabled(this.selectedProfile.id.length > 0)
+          .onClick(() => {
+            router.pushUrl({
+              url: 'pages/MeetingParticipantPage',
+              params: {
+                profileId: this.selectedProfile.id,
+                profileIds: this.selectedProfile.id,
+                selectedAgentIds: this.selectedAgentIds.join(','),
+                topic: this.topic
+              }
+            })
+          })
+
+        Button('进入角色详情')
+          .width('100%')
+          .height(38)
+          .fontSize(Typography.size.body)
+          .fontColor(Colors.primary)
+          .backgroundColor(Colors.accentPurple)
+          .borderRadius(BorderRadius.huge)
+          .stateEffect(true)
+          .enabled(this.selectedProfile.id.length > 0)
+          .onClick(() => {
+            router.pushUrl({
+              url: 'pages/ProfileDetail',
+              params: {
+                profileId: this.selectedProfile.id,
+                selectedAgentIds: this.selectedAgentIds.join(',')
+              }
+            })
+          })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .opacity(this.arenaBodyOpacity)
+      .translate({ y: this.arenaBodyY })
+      .animation({
+        duration: 440,
+        curve: Curve.Friction
+      })
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildRecordsTab() {
+    Column() {
+      RecordsTab({
+        records: this.records,
+        onRecordClick: (record: RecordItem) => {
+          router.pushUrl({
+            url: 'pages/SummaryDetailPage',
+            params: { arenaRunId: record.id }
+          })
+        },
+        onGenerateCard: (record: RecordItem) => {
+          void this.handleGenerateShareCard(record)
+        },
+        onGenerateVideo: (_record: RecordItem) => {
+          try {
+            void promptAction.openToast({ message: '会议视频入口开发中，可先使用「生成卡片」或详情页导出' })
+          } catch (_e) {
+          }
+        },
+        onShareRecord: (record: RecordItem) => {
+          router.pushUrl({
+            url: 'pages/SummaryDetailPage',
+            params: { arenaRunId: record.id, openSheet: 'share' }
+          })
+        },
+        onViewAll: () => {
+          router.pushUrl({ url: 'pages/SummaryListPage' })
+        }
+      })
+    }
+    .width('100%')
+    .opacity(this.recordsPaneOpacity)
+    .translate({ y: this.recordsPaneY })
+    .animation({
+      duration: 400,
+      curve: Curve.FastOutSlowIn
     })
   }
 
@@ -500,8 +742,8 @@ struct Index {
             }
           }
           .padding({
-            left: Spacing.page.horizontal,
-            right: Spacing.page.horizontal,
+            left: MobileSpacing.page.horizontal,
+            right: MobileSpacing.page.horizontal,
             top: this.safeTopVp,
             bottom: 80 + this.safeBottomVp
           })

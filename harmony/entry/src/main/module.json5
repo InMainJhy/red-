@@ -13,6 +13,9 @@
     "requestPermissions": [
       {
         "name": "ohos.permission.INTERNET"
+      },
+      {
+        "name": "ohos.permission.NFC_TAG"
       }
     ],
     "pages": "$profile:main_pages",
@@ -49,7 +52,7 @@
             "name": "ohos.extension.backup",
             "resource": "$profile:backup_config"
           }
-        ],
+        ]
       }
     ]
   }

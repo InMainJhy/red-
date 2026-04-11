@@ -94,7 +94,8 @@ function RolesTab() {
   return (
     <div className="pt-14 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
       <div className="mb-8 pl-2">
-        <h1 className="text-[28px] font-bold tracking-tight text-slate-800">灵感岛屿</h1>
+        <h1 className="text-[28px] font-bold tracking-tight text-slate-800">时序人格</h1>
+        <p className="text-indigo-500/75 text-xs font-medium italic tracking-[0.2em] mt-1">Chronological Persona</p>
         <p className="text-slate-500 text-sm mt-2 font-medium">收集与创造多元的思想切片</p>
       </div>
 

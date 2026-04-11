@@ -133,6 +133,50 @@ class SpacingClass implements SpacingScheme {
   }
 }
 
+// 手机端专用间距类
+@Observed
+class MobileSpacingClass implements SpacingScheme {
+  unit: number = 4
+  xxs: number = 2
+  xs: number = 3
+  sm: number = 6
+  md: number = 10
+  lg: number = 12
+  xl: number = 16
+  xxl: number = 20
+  xxxl: number = 22
+  huge: number = 24
+  giant: number = 28
+  massive: number = 32
+
+  page: PageSpacing = {
+    horizontal: 16,
+    vertical: 16,
+    top: 16,
+    bottom: 16
+  }
+
+  card: CardSpacing = {
+    small: 12,
+    medium: 14,
+    large: 16,
+    xlarge: 20
+  }
+
+  component: ComponentSpacing = {
+    tight: 8,
+    normal: 10,
+    relaxed: 12,
+    loose: 16
+  }
+
+  list: ListSpacing = {
+    item: 10,
+    gap: 12,
+    section: 18
+  }
+}
+
 // FlexLayout 类
 @Observed
 class FlexLayoutClass implements FlexLayoutScheme {
@@ -166,3 +210,6 @@ class FlexLayoutClass implements FlexLayoutScheme {
 // 导出实例
 export const Spacing: SpacingScheme = new SpacingClass()
 export const FlexLayout: FlexLayoutScheme = new FlexLayoutClass()
+
+// 手机端专用间距实例
+export const MobileSpacing: SpacingScheme = new MobileSpacingClass()

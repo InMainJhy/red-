@@ -1,5 +1,3 @@
-import { Icon, IconType } from './CustomIcon'
-
 export interface TabBarProps {
   activeIndex: number
   safeBottomVp?: number
@@ -7,14 +5,15 @@ export interface TabBarProps {
 
 @Component
 export struct TabBar {
-  @Prop activeIndex: number = 0
-  @Prop safeBottomVp: number = 0
+  @Prop public activeIndex: number = 0
+  @Prop public safeBottomVp: number = 0
   @State private pressedIndex: number = -1
   @State private barOpacity: number = 0
-  @State private barTranslateY: number = 16
-  onTabChange: (index: number) => void = () => {}
+  @State private barTranslateY: number = 20
+  @State private indicatorOffset: number = 0
+  public onTabChange: (index: number) => void = () => {}
 
-  private tabLabels: string[] = ['角色', '会议', '纪要']
+  private readonly tabLabels: string[] = ['角色', '会议', '纪要']
   private readonly tabActiveFg: string = '#6366F1'
   private readonly tabActiveBg: string = '#EEF2FF'
   private readonly tabInactiveFg: string = '#94A3B8'
@@ -22,46 +21,81 @@ export struct TabBar {
   aboutToAppear(): void {
     setTimeout(() => {
       animateTo({
-        duration: 260,
-        curve: Curve.EaseOut
+        duration: 320,
+        curve: Curve.FastOutSlowIn
       }, () => {
         this.barOpacity = 1
         this.barTranslateY = 0
       })
-    }, 80)
+    }, 100)
   }
 
   private getTabFg(index: number): string {
     return this.activeIndex === index ? this.tabActiveFg : this.tabInactiveFg
   }
 
-  private getTabIconType(index: number): IconType {
+  private getTabSymbol(index: number): Resource {
     if (index === 0) {
-      return 'person'
+      return this.activeIndex === index ? $r('sys.symbol.person_fill') : $r('sys.symbol.person')
     }
     if (index === 1) {
-      return 'chat'
+      return this.activeIndex === index ? $r('sys.symbol.message_fill') : $r('sys.symbol.message')
     }
-    return 'bookOpen'
+    return this.activeIndex === index ? $r('sys.symbol.bookmark_notepad_fill') : $r('sys.symbol.bookmark_notepad')
   }
 
   build() {
     Stack({ alignContent: Alignment.Top }) {
       Column() {
-        Row({ space: 0 }) {
-          ForEach(this.tabLabels, (label: string, index: number) => {
-            this.buildTabItem(label, index)
-          }, (label: string) => label)
+        Stack({ alignContent: Alignment.Center }) {
+          Row({ space: 0 }) {
+            ForEach(this.tabLabels, (_label: string, index: number) => {
+              Column()
+                .layoutWeight(1)
+                .height(40)
+                .margin({ left: 2, right: 2 })
+                .borderRadius(20)
+                .backgroundColor(this.tabActiveBg)
+                .shadow({
+                  radius: 14,
+                  color: 'rgba(99, 102, 241, 0.12)',
+                  offsetX: 0,
+                  offsetY: 4
+                })
+                .opacity(this.activeIndex === index ? 1 : 0)
+                .scale({
+                  x: this.activeIndex === index ? (this.pressedIndex === index ? 0.96 : 1) : 0.82,
+                  y: this.activeIndex === index ? (this.pressedIndex === index ? 0.96 : 1) : 0.82
+                })
+                .animation({
+                  duration: this.pressedIndex === index ? 120 : 260,
+                  curve: this.pressedIndex === index ? Curve.Sharp : Curve.FastOutSlowIn
+                })
+            }, (label: string) => label)
+          }
+          .width('100%')
+          .padding({
+            left: 8,
+            right: 8
+          })
+
+          Row({ space: 0 }) {
+            ForEach(this.tabLabels, (label: string, index: number) => {
+              this.buildTabItem(label, index)
+            }, (label: string) => label)
+          }
+          .width('100%')
+          .height(56)
+          .padding({
+            left: 8,
+            right: 8,
+            top: 6,
+            bottom: 6
+          })
+          .justifyContent(FlexAlign.SpaceEvenly)
         }
         .width('100%')
         .height(56)
-        .padding({
-          left: 8,
-          right: 8,
-          top: 6,
-          bottom: 6
-        })
-        .justifyContent(FlexAlign.SpaceEvenly)
         .backgroundColor('rgba(255, 255, 255, 0.94)')
         .borderRadius(28)
         .border({
@@ -100,9 +134,9 @@ export struct TabBar {
     })
     .opacity(this.barOpacity)
     .translate({ x: 0, y: this.barTranslateY })
-    .animation({
-      duration: 260,
-      curve: Curve.EaseOut
+    .scale({
+      x: this.barOpacity * 0.05 + 0.95,
+      y: this.barOpacity * 0.05 + 0.95
     })
   }
 
@@ -122,9 +156,13 @@ export struct TabBar {
         .borderRadius(2)
         .backgroundColor(this.activeIndex === index ? this.tabActiveFg : 'rgba(0, 0, 0, 0)')
         .opacity(this.activeIndex === index ? 1 : 0)
+        .scale({
+          x: this.activeIndex === index ? 1 : 0.5,
+          y: 1
+        })
         .animation({
-          duration: 180,
-          curve: Curve.EaseOut
+          duration: 220,
+          curve: Curve.FastOutSlowIn
         })
     }
     .layoutWeight(1)
@@ -137,37 +175,47 @@ export struct TabBar {
       bottom: 6
     })
     .borderRadius(16)
-    .backgroundColor(this.activeIndex === index ? this.tabActiveBg : 'rgba(0, 0, 0, 0)')
+    .backgroundColor('rgba(0, 0, 0, 0)')
     .shadow({
-      radius: this.activeIndex === index ? 10 : 0,
-      color: this.activeIndex === index ? 'rgba(99, 102, 241, 0.10)' : 'rgba(0, 0, 0, 0)',
+      radius: 0,
+      color: 'rgba(0, 0, 0, 0)',
       offsetX: 0,
-      offsetY: 4
+      offsetY: 0
     })
     .scale({
-      x: this.pressedIndex === index ? 0.95 : 1,
-      y: this.pressedIndex === index ? 0.95 : 1
+      x: this.pressedIndex === index ? 0.92 : 1,
+      y: this.pressedIndex === index ? 0.92 : 1
     })
     .translate({
       x: 0,
-      y: this.activeIndex === index ? -1 : 0
+      y: this.activeIndex === index ? -2 : 0
     })
     .animation({
-      duration: 200,
-      curve: Curve.EaseOut
+      duration: this.pressedIndex === index ? 120 : 240,
+        curve: this.pressedIndex === index ? Curve.Sharp : Curve.FastOutSlowIn
     })
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
-        this.pressedIndex = index
+        animateTo({
+          duration: 100,
+          curve: Curve.Sharp
+        }, () => {
+          this.pressedIndex = index
+        })
       } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-        this.pressedIndex = -1
+        animateTo({
+          duration: 200,
+            curve: Curve.FastOutSlowIn
+        }, () => {
+          this.pressedIndex = -1
+        })
       }
     })
     .onClick(() => {
       if (this.activeIndex !== index) {
         animateTo({
-          duration: 150,
-          curve: Curve.FastOutLinearIn
+          duration: 200,
+          curve: Curve.FastOutSlowIn
         }, () => {
           this.onTabChange(index)
         })
@@ -184,95 +232,28 @@ export struct TabBar {
         .borderRadius(12)
         .backgroundColor(this.activeIndex === index ? 'rgba(255, 255, 255, 0.72)' : 'rgba(0, 0, 0, 0)')
         .animation({
-          duration: 180,
-          curve: Curve.EaseOut
+          duration: 200,
+          curve: Curve.FastOutSlowIn
         })
 
       Column({ space: 1 }) {
-        Icon({
-          iconType: this.getTabIconType(index),
-          iconSize: this.activeIndex === index ? 16 : 15,
-          iconColor: this.getTabFg(index)
-        })
+        SymbolGlyph(this.getTabSymbol(index))
+          .fontSize(this.activeIndex === index ? 18 : 17)
+          .fontColor([this.getTabFg(index)])
+          .fontWeight(this.activeIndex === index ? FontWeight.Medium : FontWeight.Normal)
+          .renderingStrategy(SymbolRenderingStrategy.SINGLE)
       }
       .width(18)
       .height(18)
       .alignItems(HorizontalAlign.Center)
       .scale({
-        x: this.activeIndex === index ? 1.08 : 1,
-        y: this.activeIndex === index ? 1.08 : 1
+        x: this.activeIndex === index ? 1.12 : 1,
+        y: this.activeIndex === index ? 1.12 : 1
       })
       .animation({
-        duration: 200,
-        curve: Curve.EaseOut
+        duration: 220,
+          curve: Curve.FastOutSlowIn
       })
-    }
-  }
-
-  @Builder
-  buildIconContent(index: number) {
-    if (index === 0) {
-      this.buildPersonIcon()
-    } else if (index === 1) {
-      this.buildWaveIcon()
-    } else {
-      this.buildBookIcon()
-    }
-  }
-
-  @Builder
-  buildPersonIcon() {
-    Column({ space: 1 }) {
-      Column()
-        .width(6)
-        .height(6)
-        .borderRadius(3)
-        .backgroundColor(this.getTabFg(0))
-      Column()
-        .width(10)
-        .height(8)
-        .borderRadius(4)
-        .backgroundColor(this.getTabFg(0))
-    }
-  }
-
-  @Builder
-  buildWaveIcon() {
-    Column({ space: 2 }) {
-      this.waveLine(this.getTabFg(1), 0)
-      this.waveLine(this.getTabFg(1), 1)
-      this.waveLine(this.getTabFg(1), 2)
-    }
-    .justifyContent(FlexAlign.Center)
-  }
-
-  @Builder
-  waveLine(color: string, rowIndex: number) {
-    Row({ space: 1 }) {
-      ForEach([0, 1, 2, 3, 4], (i: number) => {
-        Column()
-          .width(2.2)
-          .height(1.8)
-          .borderRadius(0.9)
-          .backgroundColor(color)
-          .margin({ bottom: ((i + rowIndex) % 2 === 0) ? 1 : 0 })
-      }, (i: number) => `wave-${rowIndex}-${i}`)
-    }
-  }
-
-  @Builder
-  buildBookIcon() {
-    Column({ space: 0 }) {
-      Column()
-        .width(12)
-        .height(10)
-        .borderRadius(2)
-        .backgroundColor(this.getTabFg(2))
-      Column()
-        .width(2)
-        .height(10)
-        .backgroundColor(this.activeIndex === 2 ? this.tabActiveFg : this.tabInactiveFg)
-        .position({ x: 1 })
     }
   }
 }

@@ -26,8 +26,25 @@ export interface MessageBubbleProps {
 // MessageBubble 组件 - 清新风格消息气泡
 @Component
 export struct MessageBubble {
-  @Prop message: ArenaMessage
-  onLongPress: () => void = () => {}
+  @Prop public message: ArenaMessage
+  @State private bubbleOpacity: number = 0
+  @State private bubbleScale: number = 0.95
+  @State private bubbleTranslateY: number = 10
+  public onLongPress: () => void = () => {}
+
+  aboutToAppear(): void {
+    // 气泡入场动画
+    setTimeout(() => {
+      animateTo({
+        duration: 350,
+        curve: Curve.FastOutSlowIn
+      }, () => {
+        this.bubbleOpacity = 1
+        this.bubbleScale = 1
+        this.bubbleTranslateY = 0
+      })
+    }, 50)
+  }
 
   build() {
     Column({ space: Spacing.sm }) {
@@ -75,10 +92,15 @@ export struct MessageBubble {
       offsetX: 0,
       offsetY: 4
     })
-    .transition(TransitionEffect.OPACITY.animation({
-      duration: 300,
-      curve: Curve.EaseOut
-    }))
+    .opacity(this.bubbleOpacity)
+    .scale({
+      x: this.bubbleScale,
+      y: this.bubbleScale
+    })
+    .translate({
+      x: 0,
+      y: this.bubbleTranslateY
+    })
   }
 }
 
@@ -91,9 +113,9 @@ export interface MessageListProps {
 // MessageList 组件 - 清新风格消息列表
 @Component
 export struct MessageList {
-  @Prop messages: ArenaMessage[] = []
-  @Prop selectedAgentIds: string[] = []
-  @State scrollToBottom: boolean = false
+  @Prop public messages: ArenaMessage[] = []
+  @Prop public selectedAgentIds: string[] = []
+  @State private scrollToBottom: boolean = false
 
   build() {
     if (this.messages.length > 0) {

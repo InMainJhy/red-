@@ -1,0 +1,10 @@
+services:
+  timepersonabackend:
+    image: timepersonabackend
+    build:
+      context: harmony/redmain/backend
+      dockerfile: ./Dockerfile
+    environment:
+      NODE_ENV: production
+    ports:
+      - 3000:3000

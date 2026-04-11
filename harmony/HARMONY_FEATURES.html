@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时序人格 - 鸿蒙特性技术文档</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --mint: #5ECBA1;
+            --mint-dark: #4AA885;
+            --mint-light: #8FE6C9;
+            --mint-pale: #E8F8F2;
+            --lavender: #A78BFA;
+            --lavender-light: #C4B5FD;
+            --lavender-pale: #F3E8FF;
+            --bg: #FAFBFC;
+            --bg-secondary: #F5F7F9;
+            --surface: #FFFFFF;
+            --text-primary: #1A1D26;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --border: #E5E7EB;
+            --warning: #F59E0B;
+            --success: #10B981;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 68px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 50px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--mint), var(--lavender));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .nav-tag {
+            background: var(--mint-pale);
+            color: var(--mint-dark);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* 头部区域 */
+        .hero {
+            padding: 140px 50px 80px;
+            text-align: center;
+            background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(94, 203, 161, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(167, 139, 250, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--lavender-pale);
+            color: var(--lavender);
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 700;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, var(--mint) 0%, var(--lavender) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* 内容区域 */
+        .content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 30px 80px;
+        }
+
+        /* 第一部分：特性清单 */
+        .section {
+            margin-bottom: 80px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .section-number {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--mint), var(--lavender));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .section-desc {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        /* 特性卡片 */
+        .feature-group {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .feature-group:hover {
+            border-color: var(--mint-light);
+            box-shadow: 0 8px 30px rgba(94, 203, 161, 0.1);
+        }
+
+        .feature-group-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .feature-icon.mint {
+            background: var(--mint-pale);
+        }
+
+        .feature-icon.lavender {
+            background: var(--lavender-pale);
+        }
+
+        .feature-icon.gradient {
+            background: linear-gradient(135deg, var(--mint-pale), var(--lavender-pale));
+        }
+
+        .feature-title-wrap h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .feature-title-wrap span {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* 代码块 */
+        .code-comment {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-style: italic;
+            margin-bottom: 16px;
+        }
+
+        .code-block {
+            background: #1E1E2E;
+            border-radius: 12px;
+            padding: 20px 24px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .code-block code {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #CDD6F4;
+        }
+
+        .code-block .comment {
+            color: #6C7086;
+        }
+
+        .code-block .keyword {
+            color: #CBA6F7;
+        }
+
+        .code-block .string {
+            color: #A6E3A1;
+        }
+
+        .code-block .function {
+            color: #89B4FA;
+        }
+
+        .code-block .property {
+            color: #89DCEB;
+        }
+
+        .code-block .number {
+            color: #FAB387;
+        }
+
+        /* 勾选列表 */
+        .check-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: var(--bg);
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .check-icon {
+            width: 22px;
+            height: 22px;
+            background: var(--mint);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .check-item span {
+            color: var(--text-secondary);
+        }
+
+        .check-item strong {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* 分隔线 */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        /* 第二部分：亮点表格 */
+        .highlight-table {
+            background: var(--surface);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .highlight-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .highlight-table thead {
+            background: linear-gradient(135deg, var(--mint), var(--lavender));
+        }
+
+        .highlight-table th {
+            padding: 20px 24px;
+            text-align: left;
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .highlight-table td {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .highlight-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .highlight-table tr:hover td {
+            background: var(--bg);
+        }
+
+        .highlight-table .feature-name {
+            font-weight: 600;
+            color: var(--mint-dark);
+        }
+
+        .highlight-table .highlight-tag {
+            display: inline-block;
+            background: var(--mint-pale);
+            color: var(--mint-dark);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-right: 6px;
+        }
+
+        .highlight-table .code-tag {
+            background: #1E1E2E;
+            color: #CDD6F4;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        /* 第三部分：介绍框架 */
+        .framework-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .framework-card {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 32px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .framework-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--mint-light);
+            box-shadow: 0 12px 40px rgba(94, 203, 161, 0.12);
+        }
+
+        .framework-number {
+            width: 40px;
+            height: 40px;
+            background: var(--mint-pale);
+            color: var(--mint-dark);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .framework-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .framework-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+
+        .framework-quote {
+            background: var(--bg);
+            border-left: 3px solid var(--mint);
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .framework-list {
+            list-style: none;
+        }
+
+        .framework-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .framework-list li::before {
+            content: '→';
+            color: var(--mint);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        /* 第四部分：问答区域 */
+        .qa-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .qa-card {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .qa-card:hover {
+            border-color: var(--lavender-light);
+        }
+
+        .qa-question {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .qa-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--lavender-pale);
+            color: var(--lavender);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .qa-question h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .qa-answer {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .qa-answer-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--mint-dark);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .qa-answer p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .qa-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .qa-keyword {
+            background: var(--mint-pale);
+            color: var(--mint-dark);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* 页脚 */
+        .footer {
+            background: var(--text-primary);
+            color: white;
+            padding: 50px 30px;
+            text-align: center;
+        }
+
+        .footer p {
+            opacity: 0.6;
+            font-size: 14px;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            opacity: 1;
+        }
+
+        .footer-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--mint), var(--lavender));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .framework-section {
+                grid-template-columns: 1fr;
+            }
+            .qa-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .navbar { padding: 0 20px; }
+            .hero { padding: 120px 20px 60px; }
+            .content { padding: 0 20px 60px; }
+            .feature-group { padding: 24px; }
+            .section-header { flex-wrap: wrap; }
+            .highlight-table { overflow-x: auto; }
+            .highlight-table table { min-width: 600px; }
+        }
+
+        /* 动画 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">⏳</div>
+            <span>时序人格</span>
+        </div>
+        <div class="nav-tag">鸿蒙特性技术文档</div>
+    </nav>
+
+    <!-- 头部区域 -->
+    <section class="hero">
+        <div class="hero-badge">HarmonyOS ArkUI</div>
+        <h1>项目中的<span class="gradient">鸿蒙特性</span>清单</h1>
+        <p>基于 HarmonyOS ArkUI 打造的时序人格应用，充分利用原生能力实现高性能、高体验的跨时空对话应用</p>
+    </section>
+
+    <!-- 内容区域 -->
+    <div class="content">
+        <!-- 第一部分：特性清单 -->
+        <section class="section fade-in">
+            <div class="section-header">
+                <div class="section-number">1</div>
+                <div>
+                    <h2 class="section-title">鸿蒙特性清单</h2>
+                    <p class="section-desc">项目中使用的主要 HarmonyOS 能力</p>
+                </div>
+            </div>
+
+            <!-- 特性1 -->
+            <div class="feature-group">
+                <div class="feature-group-header">
+                    <div class="feature-icon mint">🎨</div>
+                    <div class="feature-title-wrap">
+                        <h3>ArkUI 声明式 UI 开发框架</h3>
+                        <span>声明式开发 · 高性能 · 类型安全</span>
+                    </div>
+                </div>
+                <div class="check-list">
+                    <div class="check-item">
+                        <div class="check-icon">✓</div>
+                        <span><strong>@Component</strong> 组件化开发模式</span>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-icon">✓</div>
+                        <span><strong>@State/@Link/@Prop</strong> 响应式状态管理</span>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-icon">✓</div>
+                        <span><strong>@Builder/@Preview</strong> 自定义构建器</span>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-icon">✓</div>
+                        <span><strong>if-else/ForEach</strong> 控制流语法</span>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-icon">✓</div>
+                        <span><strong>animateTo()</strong> 统一动画系统</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 特性2 -->
+            <div class="feature-group">
+                <div class="feature-group-header">
+                    <div class="feature-icon lavender">⚡</div>
+                    <div class="feature-title-wrap">
+                        <h3>Ability 生命周期管理</h3>
+                        <span>EntryAbility.ets · 完整生命周期</span>
+                    </div>
+                </div>
+                <p class="code-comment">// EntryAbility.ets 完整实现</p>
+                <div class="code-block">
+                    <code>
+<span class="keyword">export default class</span> <span class="function">EntryAbility</span> <span class="keyword">extends</span> <span class="type">UIAbility</span> {
+    <span class="function">onCreate</span>()        <span class="comment">// 应用启动初始化</span>
+    <span class="function">onDestroy</span>()       <span class="comment">// 应用销毁清理</span>
+    <span class="function">onForeground</span>()    <span class="comment">// 进入前台</span>
+    <span class="function">onBackground</span>()    <span class="comment">// 进入后台</span>
+    <span class="function">onWindowStageCreate</span>() <span class="comment">// 窗口创建</span>
+    <span class="function">onWindowStageDestroy</span>() <span class="comment">// 窗口销毁</span>
+}
+                    </code>
+                </div>
+            </div>
+
+            <!-- 特性3 -->
+            <div class="feature-group">
+                <div class="feature-group-header">
+                    <div class="feature-icon gradient">🖼️</div>
+                    <div class="feature-title-wrap">
+                        <h3>安全区域与沉浸式体验</h3>
+                        <span>WindowSafeArea.ets · 刘海屏适配</span>
+                    </div>
+                </div>
+                <p class="code-comment">// WindowSafeArea.ets</p>
+                <div class="code-block">
+                    <code>
+<span class="comment">// 获取安全区域</span>
+<span class="keyword">import</span> { window, display } <span class="keyword">from</span> <span class="string">'@kit.ArkUI'</span>
+
+<span class="function">fetchSafeAreaInsets</span>(context) {
+    <span class="keyword">return</span> window.<span class="function">getLastWindow</span>(context)
+        .<span class="function">then</span>((win) => {
+            <span class="keyword">const</span> system = win.<span class="function">getWindowAvoidArea</span>(<span class="property">TYPE_SYSTEM</span>)
+            <span class="keyword">const</span> nav = win.<span class="function">getWindowAvoidArea</span>(<span class="property">TYPE_NAVIGATION_INDICATOR</span>)
+            <span class="keyword">const</span> cutout = win.<span class="function">getWindowAvoidArea</span>(<span class="property">TYPE_CUTOUT</span>)
+            <span class="comment">// 适配刘海屏、折叠屏...</span>
+        })
+}
+
+<span class="comment">// 全屏布局 + 状态栏沉浸</span>
+mainWindow.<span class="function">setWindowLayoutFullScreen</span>(<span class="keyword">true</span>)
+mainWindow.<span class="function">setWindowSystemBarProperties</span>({
+    statusBarColor: <span class="string">'#00000000'</span>,
+    statusBarContentColor: <span class="string">'#FFFFFFFF'</span>
+})
+                    </code>
+                </div>
+            </div>
+
+            <!-- 特性4 -->
+            <div class="feature-group">
+                <div class="feature-group-header">
+                    <div class="feature-icon mint">🌐</div>
+                    <div class="feature-title-wrap">
+                        <h3>网络通信能力</h3>
+                        <span>PersonaApi.ets · @kit.NetworkKit</span>
+                    </div>
+                </div>
+                <p class="code-comment">// PersonaApi.ets</p>
+                <div class="code-block">
+                    <code>
+<span class="keyword">import</span> { http } <span class="keyword">from</span> <span class="string">'@kit.NetworkKit'</span>
+
+<span class="comment">// HTTP 请求封装</span>
+<span class="keyword">const</span> request = http.<span class="function">createHttp</span>()
+
+<span class="comment">// SSE 流式接口</span>
+<span class="function">streamArena</span>(config)  <span class="comment">// 实时流式输出</span>
+
+<span class="comment">// 请求超时控制</span>
+<span class="keyword">const</span> PROFILE_TIMEOUT = <span class="number">20_000</span>    <span class="comment">// 20秒</span>
+<span class="keyword">const</span> GENERATION_TIMEOUT = <span class="number">300_000</span>  <span class="comment">// 5分钟</span>
+<span class="comment">// 多服务器自动切换</span>
+<span class="keyword">const</span> API_BASE_URLS = [...]
+                    </code>
+                </div>
+            </div>
+
+            <!-- 特性5 -->
+            <div class="feature-group">
+                <div class="feature-group-header">
+                    <div class="feature-icon lavender">⚙️</div>
+                    <div class="feature-title-wrap">
+                        <h3>性能优化机制</h3>
+                        <span>ImageCacheManager + NetworkOptimizer</span>
+                    </div>
+                </div>
+                <p class="code-comment">// ImageCacheManager.ets - 图片缓存</p>
+                <div class="code-block">
+                    <code>
+<span class="keyword">export class</span> <span class="function">ImageCacheManager</span> {
+    <span class="comment">// LRU 淘汰策略</span>
+    <span class="keyword">private</span> maxCacheSize = <span class="number">50</span> * <span class="number">1024</span> * <span class="number">1024</span>  <span class="comment">// 50MB</span>
+    <span class="keyword">private</span> maxAge = <span class="number">30</span> * <span class="number">60</span> * <span class="number">1000</span>       <span class="comment">// 30分钟</span>
+    
+    <span class="comment">// 单例模式</span>
+    <span class="keyword">static</span> <span class="function">getInstance</span>(): ImageCacheManager
+}
+                    </code>
+                </div>
+                <div class="divider"></div>
+                <p class="code-comment">// NetworkOptimizer.ets - 网络优化</p>
+                <div class="code-block">
+                    <code>
+<span class="keyword">export class</span> <span class="function">NetworkOptimizer</span> {
+    <span class="comment">// 请求缓存</span>
+    requestCache: Map&lt;<span class="keyword">string</span>, CacheItem&gt;
+    <span class="comment">// 请求去重（相同请求只发一次）</span>
+    pendingRequests: Map&lt;<span class="keyword">string</span>, Promise&gt;
+    <span class="comment">// 批量请求合并</span>
+    batchQueue: Map&lt;<span class="keyword">string</span>, ESObject[]&gt;
+}
+                    </code>
+                </div>
+            </div>
+
+            <!-- 特性6 -->
+            <div class="feature-group">
+                <div class="feature-group-header">
+                    <div class="feature-icon gradient">🎯</div>
+                    <div class="feature-title-wrap">
+                        <h3>HarmonyOS 设计规范</h3>
+                        <span>统一 Design Token</span>
+                    </div>
+                </div>
+                <div class="check-list">
+                    <div class="check-item">
+                        <div class="check-icon">✓</div>
+                        <span><strong>MintColors</strong> 品牌色系（薄荷绿 + 淡紫）</span>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-icon">✓</div>
+                        <span><strong>BorderRadius</strong> 统一圆角规范</span>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-icon">✓</div>
+                        <span><strong>Spacing</strong> 统一间距系统</span>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-icon">✓</div>
+                        <span><strong>Animation</strong> 统一动效时长/曲线</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 特性7 -->
+            <div class="feature-group">
+                <div class="feature-group-header">
+                    <div class="feature-icon mint">🔗</div>
+                    <div class="feature-title-wrap">
+                        <h3>跨页面数据传递</h3>
+                        <span>MeetingSessionStore.ets</span>
+                    </div>
+                </div>
+                <p class="code-comment">// MeetingSessionStore.ets - 静态类实现状态共享</p>
+                <div class="code-block">
+                    <code>
+<span class="keyword">export class</span> <span class="function">MeetingSessionStore</span> {
+    <span class="keyword">static</span> <span class="function">setProfileId</span>(id: <span class="keyword">string</span>)
+    <span class="keyword">static</span> <span class="function">getProfileId</span>(): <span class="keyword">string</span>
+    <span class="keyword">static</span> <span class="function">setSelectedAgents</span>(ids: <span class="keyword">string</span>[])
+    <span class="keyword">static</span> <span class="function">getSelectedAgents</span>(): <span class="keyword">string</span>[]
+    <span class="keyword">static</span> <span class="function">setTopic</span>(topic: <span class="keyword">string</span>)
+    <span class="keyword">static</span> <span class="function">clear</span>()  <span class="comment">// 清理所有状态</span>
+}
+                    </code>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第二部分：核心亮点 -->
+        <section class="section fade-in">
+            <div class="section-header">
+                <div class="section-number">2</div>
+                <div>
+                    <h2 class="section-title">核心亮点（答辩/演示必讲）</h2>
+                    <p class="section-desc">评委最关注的鸿蒙技术亮点</p>
+                </div>
+            </div>
+
+            <div class="highlight-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>特性</th>
+                            <th>亮点</th>
+                            <th>可展示的代码</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="feature-name">ArkUI 声明式</td>
+                            <td>
+                                <span class="highlight-tag">代码量减少 50%</span>
+                                <span class="highlight-tag">UI 更新自动响应</span>
+                            </td>
+                            <td>
+                                <span class="code-tag">@State</span>
+                                <span class="code-tag">@Link</span>
+                                <span class="code-tag">状态驱动</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">沉浸式体验</td>
+                            <td>
+                                <span class="highlight-tag">全屏适配</span>
+                                <span class="highlight-tag">刘海屏/折叠屏</span>
+                            </td>
+                            <td>
+                                <span class="code-tag">安全区域 API</span>
+                                <span class="code-tag">getWindowAvoidArea</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">性能优化</td>
+                            <td>
+                                <span class="highlight-tag">本地缓存</span>
+                                <span class="highlight-tag">减少网络请求</span>
+                            </td>
+                            <td>
+                                <span class="code-tag">LRU 缓存</span>
+                                <span class="code-tag">请求去重</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 第三部分：介绍框架 -->
+        <section class="section fade-in">
+            <div class="section-header">
+                <div class="section-number">3</div>
+                <div>
+                    <h2 class="section-title">介绍框架建议</h2>
+                    <p class="section-desc">如何在答辩中条理清晰地展示鸿蒙特性</p>
+                </div>
+            </div>
+
+            <div class="framework-section">
+                <div class="framework-card">
+                    <div class="framework-number">1️⃣</div>
+                    <h3>开场 30 秒：技术选型</h3>
+                    <p>简要说明为什么选择 HarmonyOS 及其核心优势</p>
+                    <div class="framework-quote">
+                        "我们基于 HarmonyOS ArkUI 开发，充分利用其声明式 UI 特性..."
+                    </div>
+                </div>
+
+                <div class="framework-card">
+                    <div class="framework-number">2️⃣</div>
+                    <h3>核心亮点展示</h3>
+                    <p>用实际效果演示三个核心能力</p>
+                    <ul class="framework-list">
+                        <li>沉浸式体验：截图对比有/无安全区域适配</li>
+                        <li>状态管理：演示对话过程中 UI 实时更新</li>
+                        <li>性能优化：展示缓存命中率和加载速度</li>
+                    </ul>
+                </div>
+
+                <div class="framework-card">
+                    <div class="framework-number">3️⃣</div>
+                    <h3>技术深度（可选）</h3>
+                    <p>展示对 HarmonyOS 的深入理解</p>
+                    <ul class="framework-list">
+                        <li>单例模式在 HarmonyOS 中的最佳实践</li>
+                        <li>ArkTS 类型系统在大型项目中的优势</li>
+                        <li>声明式 UI 的响应式原理</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第四部分：评委问答 -->
+        <section class="section fade-in">
+            <div class="section-header">
+                <div class="section-number">4</div>
+                <div>
+                    <h2 class="section-title">评委可能问的问题</h2>
+                    <p class="section-desc">提前准备的回答要点</p>
+                </div>
+            </div>
+
+            <div class="qa-section">
+                <div class="qa-card">
+                    <div class="qa-question">
+                        <div class="qa-icon">❓</div>
+                        <h4>"为什么选 HarmonyOS？"</h4>
+                    </div>
+                    <div class="qa-answer">
+                        <div class="qa-answer-title">回答要点</div>
+                        <p>鸿蒙生态的独特优势：方舟引擎的高性能、ArkUI 的声明式简化、AI 能力的原生集成、设备间的无缝流转体验</p>
+                        <div class="qa-keywords">
+                            <span class="qa-keyword">鸿蒙生态</span>
+                            <span class="qa-keyword">方舟引擎</span>
+                            <span class="qa-keyword">AI 能力</span>
+                            <span class="qa-keyword">设备流转</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qa-card">
+                    <div class="qa-question">
+                        <div class="qa-icon">❓</div>
+                        <h4>"ArkUI 相比 Flutter/React Native 的优势？"</h4>
+                    </div>
+                    <div class="qa-answer">
+                        <div class="qa-answer-title">回答要点</div>
+                        <p>原生性能最优、声明式语法更简洁、ArkTS 类型系统提供编译时检查、大型项目可维护性更高</p>
+                        <div class="qa-keywords">
+                            <span class="qa-keyword">原生性能</span>
+                            <span class="qa-keyword">声明式简化</span>
+                            <span class="qa-keyword">类型安全</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qa-card">
+                    <div class="qa-question">
+                        <div class="qa-icon">❓</div>
+                        <h4>"如何保证性能？"</h4>
+                    </div>
+                    <div class="qa-answer">
+                        <div class="qa-answer-title">回答要点</div>
+                        <p>三级优化策略：1) LRU 图片缓存减少重复加载 2) 网络请求去重避免重复请求 3) 批量请求合并减少开销</p>
+                        <div class="qa-keywords">
+                            <span class="qa-keyword">LRU 缓存</span>
+                            <span class="qa-keyword">请求去重</span>
+                            <span class="qa-keyword">批量合并</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qa-card">
+                    <div class="qa-question">
+                        <div class="qa-icon">❓</div>
+                        <h4>"如何适配多设备？"</h4>
+                    </div>
+                    <div class="qa-answer">
+                        <div class="qa-answer-title">回答要点</div>
+                        <p>使用安全区域 API 动态获取刘海屏、挖孔屏、折叠屏的边缘区域，确保内容不被遮挡，实现真正的全屏适配</p>
+                        <div class="qa-keywords">
+                            <span class="qa-keyword">安全区域 API</span>
+                            <span class="qa-keyword">响应式布局</span>
+                            <span class="qa-keyword">折叠屏适配</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-brand">
+            <div class="footer-icon">⏳</div>
+            <span>时序人格</span>
+        </div>
+        <p>© 2026 时序人格 · HarmonyOS ArkUI 原生应用 · 小红书黑客马拉松作品</p>
+    </footer>
+
+    <script>
+        // 滚动动画
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

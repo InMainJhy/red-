@@ -1,4 +1,5 @@
 // 统一动效规范 - HarmonyOS ArkTS 动画工具类
+// 时长与曲线对齐华为设计体系：强调动效用 EaseOut / FastOutSlowIn，物理感滚动与回弹可配合 Friction + EdgeEffect.Spring
 
 // 动效时长
 export class AnimationDurationClass {
@@ -15,11 +16,16 @@ export const AnimationDuration: AnimationDurationClass = new AnimationDurationCl
 export class AnimationCurveClass {
   standard: Curve = Curve.Ease
   emphasized: Curve = Curve.EaseOut
-  decelerated: Curve = Curve.EaseIn
-  accelerated: Curve = Curve.EaseOut
+  decelerated: Curve = Curve.EaseOut
+  accelerated: Curve = Curve.EaseIn
   smooth: Curve = Curve.FastOutSlowIn
   bounce: Curve = Curve.FastOutLinearIn
   linear: Curve = Curve.Linear
+  // 新增：更丰富的曲线
+  spring: Curve = Curve.FastOutSlowIn
+  friction: Curve = Curve.Friction
+  sharp: Curve = Curve.Sharp
+  rhythmic: Curve = Curve.Rhythm
 }
 export const AnimationCurve: AnimationCurveClass = new AnimationCurveClass()
 
@@ -53,6 +59,9 @@ export const AnimationPresets: AnimationPresetsContainerClass = new AnimationPre
 export function getStaggerDelay(index: number, baseDelay: number = 50): number {
   return index * baseDelay
 }
+
+/** 页面内多段内容错峰出现的基础间隔（ms） */
+export const PAGE_SECTION_STAGGER_MS: number = 80
 
 // 组件出现动画配置（从下方滑入 + 淡入）
 export function getAppearAnimation(delay: number = 0): TransitionEffect {
@@ -184,3 +193,128 @@ export class ShimmerAnimationClass {
   curve: Curve = Curve.Linear
 }
 export const ShimmerAnimation: ShimmerAnimationClass = new ShimmerAnimationClass()
+
+// 弹簧动画配置
+export interface SpringConfig {
+  velocity: number
+  mass: number
+  stiffness: number
+  damping: number
+}
+
+export class SpringConfigClass implements SpringConfig {
+  velocity: number = 0
+  mass: number = 1
+  stiffness: number = 100
+  damping: number = 10
+
+  constructor(velocity: number, mass: number, stiffness: number, damping: number) {
+    this.velocity = velocity
+    this.mass = mass
+    this.stiffness = stiffness
+    this.damping = damping
+  }
+}
+
+// 弹簧动画预设
+export class SpringPresetsClass {
+  gentle: SpringConfig = new SpringConfigClass(0, 1, 120, 14)
+  bouncy: SpringConfig = new SpringConfigClass(0, 1, 180, 12)
+  stiff: SpringConfig = new SpringConfigClass(0, 1, 210, 20)
+  slow: SpringConfig = new SpringConfigClass(0, 1, 280, 60)
+}
+export const SpringPresets: SpringPresetsClass = new SpringPresetsClass()
+
+// 微交互动画 - 用于按钮、图标等小元素
+export function getMicroInteraction(delay: number = 0): TransitionEffect {
+  return TransitionEffect.scale({ x: 0.95, y: 0.95 })
+    .animation({
+      duration: AnimationDuration.instant,
+      curve: AnimationCurve.sharp,
+      delay: delay
+    })
+    .combine(TransitionEffect.OPACITY)
+    .animation({
+      duration: AnimationDuration.fast,
+      curve: AnimationCurve.emphasized,
+      delay: delay
+    })
+}
+
+// 卡片翻转动画
+export function getFlipAnimation(duration: number = 400): TransitionEffect {
+  return TransitionEffect.rotate({ x: 0, y: 1, z: 0, angle: 180 })
+    .animation({
+      duration: duration,
+      curve: AnimationCurve.smooth
+    })
+    .combine(TransitionEffect.OPACITY)
+    .animation({
+      duration: duration / 2,
+      curve: AnimationCurve.emphasized
+    })
+}
+
+// 弹性缩放入场
+export function getElasticScaleIn(delay: number = 0): TransitionEffect {
+  return TransitionEffect.scale({ x: 0.3, y: 0.3 })
+    .animation({
+      duration: AnimationDuration.slower,
+      curve: AnimationCurve.smooth,
+      delay: delay
+    })
+    .combine(TransitionEffect.OPACITY)
+    .animation({
+      duration: AnimationDuration.normal,
+      curve: AnimationCurve.emphasized,
+      delay: delay
+    })
+}
+
+// 滑动淡入（从指定方向）
+export interface SlideInConfig {
+  x?: number
+  y?: number
+  duration?: number
+  delay?: number
+}
+
+export function getSlideInAnimation(config: SlideInConfig): TransitionEffect {
+  const x = config.x ?? 0
+  const y = config.y ?? 0
+  const duration = config.duration ?? AnimationDuration.normal
+  const delay = config.delay ?? 0
+
+  return TransitionEffect.translate({ x: x, y: y })
+    .animation({
+      duration: duration,
+      curve: AnimationCurve.emphasized,
+      delay: delay
+    })
+    .combine(TransitionEffect.OPACITY)
+    .animation({
+      duration: duration,
+      curve: AnimationCurve.emphasized,
+      delay: delay
+    })
+}
+
+// 脉冲动画配置（用于提示、通知等）
+export class PulseAnimationClass {
+  duration: number = 1000
+  iterations: number = -1
+  scaleFrom: number = 1.0
+  scaleTo: number = 1.05
+  curve: Curve = Curve.EaseInOut
+}
+export const PulseAnimation: PulseAnimationClass = new PulseAnimationClass()
+
+// 呼吸灯动画配置
+export class BreathAnimationClass {
+  duration: number = 2000
+  iterations: number = -1
+  opacityFrom: number = 0.4
+  opacityTo: number = 1.0
+  curve: Curve = Curve.EaseInOut
+}
+export const BreathAnimation: BreathAnimationClass = new BreathAnimationClass()

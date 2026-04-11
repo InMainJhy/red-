@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>余江昊 - 鸿蒙开发者</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            min-height: 100vh;
+            background: #0a0a12;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* 背景 */
+        .bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .bg-gradient {
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 10% 20%, rgba(67, 56, 202, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 90% 80%, rgba(124, 58, 237, 0.12) 0%, transparent 50%);
+        }
+
+        .bg-grid {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(139, 92, 246, 0.6);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+            50% { transform: translateY(-30px) translateX(15px); opacity: 0.8; }
+        }
+
+        /* 主内容 */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 24px;
+        }
+
+        /* 头部 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 50px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4338ca, #7c3aed);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            letter-spacing: 1px;
+        }
+
+        .badge {
+            padding: 8px 16px;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 20px;
+            font-size: 12px;
+            color: #a78bfa;
+            letter-spacing: 1px;
+        }
+
+        /* 名字区域 */
+        .identity {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeIn 1s ease-out 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .name-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .line {
+            width: 40px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5));
+        }
+
+        .line.right {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.5), transparent);
+        }
+
+        .name {
+            font-size: 42px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            background: linear-gradient(135deg, #fff 0%, #c7d2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .role {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 6px;
+        }
+
+        .role span {
+            color: #818cf8;
+        }
+
+        /* 项目介绍 */
+        .project {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px;
+            padding: 36px;
+            margin-bottom: 36px;
+            animation: slideUp 0.8s ease-out 0.4s both;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .project-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .project-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #4338ca, #7c3aed);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .project-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .project-desc {
+            font-size: 14px;
+            line-height: 1.9;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 20px;
+        }
+
+        .project-desc strong {
+            color: #a5b4fc;
+        }
+
+        .project-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tag {
+            padding: 6px 14px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 16px;
+            font-size: 12px;
+            color: #a5b4fc;
+            transition: all 0.3s ease;
+        }
+
+        .tag:hover {
+            background: rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* 技能 */
+        .skills {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 36px;
+            animation: slideUp 0.8s ease-out 0.6s both;
+        }
+
+        .skill {
+            padding: 10px 20px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .skill:hover {
+            transform: translateY(-3px);
+        }
+
+        .skill-1 {
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #c7d2fe;
+        }
+
+        .skill-2 {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #ddd6fe;
+        }
+
+        .skill-3 {
+            background: rgba(236, 72, 153, 0.12);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            color: #fbcfe8;
+        }
+
+        .skill-4 {
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #bbf7d0;
+        }
+
+        .skill-5 {
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fde68a;
+        }
+
+        /* 数据卡片 */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 36px;
+            animation: slideUp 0.8s ease-out 0.8s both;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 24px 16px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(99, 102, 241, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .stat-num {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #818cf8, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        /* 团队 */
+        .team {
+            margin-bottom: 36px;
+            animation: slideUp 0.8s ease-out 1s both;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 3px;
+            margin-bottom: 18px;
+        }
+
+        .members {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .member {
+            text-align: center;
+            padding: 20px 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .member:hover {
+            transform: translateY(-4px);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        .member.leader {
+            background: rgba(99, 102, 241, 0.08);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        .member-avatar {
+            width: 44px;
+            height: 44px;
+            margin: 0 auto 12px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .member.leader .member-avatar {
+            background: linear-gradient(135deg, #4338ca, #7c3aed);
+        }
+
+        .member:not(.leader) .member-avatar {
+            background: rgba(99, 102, 241, 0.15);
+        }
+
+        .member-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .member-role {
+            font-size: 11px;
+            color: #818cf8;
+        }
+
+        /* 联系 */
+        .contact {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            animation: slideUp 0.8s ease-out 1.2s both;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .contact-item:hover {
+            background: rgba(99, 102, 241, 0.08);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        .contact-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #4338ca, #7c3aed);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-right: 14px;
+        }
+
+        .contact-info {
+            text-align: left;
+        }
+
+        .contact-type {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 2px;
+        }
+
+        .contact-value {
+            font-size: 14px;
+            color: #fff;
+        }
+
+        /* 底部 */
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            animation: fadeIn 1s ease-out 1.4s both;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: rgba(255,255,255,0.25);
+            letter-spacing: 3px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 640px) {
+            .header {
+                flex-direction: column;
+                gap: 16px;
+            }
+            .name {
+                font-size: 32px;
+                letter-spacing: 4px;
+            }
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .members {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .contact {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">🚀</div>
+                <span class="logo-text">野生工程队</span>
+            </div>
+            <div class="badge">HARMONYOS DEVELOPER</div>
+        </div>
+
+        <div class="identity">
+            <div class="name-row">
+                <div class="line"></div>
+                <h1 class="name">余江昊</h1>
+                <div class="line right"></div>
+            </div>
+            <p class="role">SHANGHAI <span>·</span> FULL STACK DEVELOPER</p>
+        </div>
+
+        <div class="project">
+            <div class="project-header">
+                <div class="project-icon">🌟</div>
+                <h2 class="project-title">时序人格 Temporal Persona</h2>
+            </div>
+            <p class="project-desc">
+                让<strong>历史名人"穿越"至今</strong>的AI对话应用。<br>
+                汇聚巴菲特、乔布斯、孔子等传奇人物的数字人格，<br>
+                通过多角色圆桌会议，与智者对话、与先贤论道。
+            </p>
+            <div class="project-tags">
+                <span class="tag">跨时空AI对话</span>
+                <span class="tag">多角色辩论</span>
+                <span class="tag">智能会议纪要</span>
+                <span class="tag">一键分享</span>
+            </div>
+        </div>
+
+        <div class="skills">
+            <span class="skill skill-1">鸿蒙原生开发</span>
+            <span class="skill skill-2">9款APP上线</span>
+            <span class="skill skill-3">华为HDD贡献</span>
+            <span class="skill skill-4">具身智能研究</span>
+            <span class="skill skill-5">交大项目</span>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-num">9</div>
+                <div class="stat-label">原生APP</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">4</div>
+                <div class="stat-label">团队成员</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">2</div>
+                <div class="stat-label">项目经历</div>
+            </div>
+        </div>
+
+        <div class="team">
+            <div class="section-title">TEAM MEMBERS</div>
+            <div class="members">
+                <div class="member leader">
+                    <div class="member-avatar">👑</div>
+                    <div class="member-name">罗思成</div>
+                    <div class="member-role">队长</div>
+                </div>
+                <div class="member">
+                    <div class="member-avatar">🎯</div>
+                    <div class="member-name">余江昊</div>
+                    <div class="member-role">开发</div>
+                </div>
+                <div class="member">
+                    <div class="member-avatar">💡</div>
+                    <div class="member-name">张锦阳</div>
+                    <div class="member-role">开发</div>
+                </div>
+                <div class="member">
+                    <div class="member-avatar">🚀</div>
+                    <div class="member-name">鲍子昊</div>
+                    <div class="member-role">开发</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="contact">
+            <div class="contact-item">
+                <div class="contact-icon">📱</div>
+                <div class="contact-info">
+                    <div class="contact-type">手机</div>
+                    <div class="contact-value">15282618461</div>
+                </div>
+            </div>
+            <div class="contact-item">
+                <div class="contact-icon">📧</div>
+                <div class="contact-info">
+                    <div class="contact-type">邮箱</div>
+                    <div class="contact-value">483304714@qq.com</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p class="footer-text">THANKS FOR YOUR ATTENTION</p>
+        </div>
+    </div>
+</body>
+</html>

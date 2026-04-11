@@ -2,8 +2,16 @@
   "src": [
     "pages/Index",
     "pages/ProfileDetail",
+    "pages/SmartQuestionPrep",
     "pages/Arena",
     "pages/CreateRole",
-    "pages/ExplorePersonas"
+    "pages/ExplorePersonas",
+    "pages/SummaryDetailPage",
+    "pages/SummaryListPage",
+    "pages/PosterPreviewPage",
+    "pages/MeetingParticipantPage",
+    "pages/MeetingProfilePickerPage",
+    "pages/MeetingChatPage",
+    "pages/AIDialogueCreateRole"
   ]
 }

@@ -130,8 +130,8 @@ export const Durations: DurationScheme = {
 export const Curves: CurveScheme = {
   standard: Curve.Ease,
   emphasized: Curve.EaseOut,
-  decelerated: Curve.EaseIn,
-  accelerated: Curve.EaseOut,
+  decelerated: Curve.EaseOut,
+  accelerated: Curve.EaseIn,
   smooth: Curve.FastOutSlowIn,
   bounce: Curve.FastOutLinearIn
 }

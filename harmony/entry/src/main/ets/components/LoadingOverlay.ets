@@ -11,7 +11,25 @@ export interface LoadingOverlayProps {
 // LoadingOverlay 组件 - 清新风格加载状态遮罩
 @Component
 export struct LoadingOverlay {
-  @Prop message: string = ''
+  @Prop public message: string = ''
+  @State private overlayOpacity: number = 0
+  @State private overlayScale: number = 0.9
+  @State private spinnerRotate: number = 0
+
+  aboutToAppear(): void {
+    if (this.message.length > 0) {
+      // 加载框入场动画
+      setTimeout(() => {
+        animateTo({
+          duration: 300,
+            curve: Curve.FastOutSlowIn
+        }, () => {
+          this.overlayOpacity = 1
+          this.overlayScale = 1
+        })
+      }, 0)
+    }
+  }
 
   build() {
     if (this.message.length > 0) {
@@ -37,10 +55,11 @@ export struct LoadingOverlay {
         offsetX: 0,
         offsetY: 4
       })
-      .transition(TransitionEffect.OPACITY.animation({
-        duration: 200,
-        curve: Curve.EaseOut
-      }))
+      .opacity(this.overlayOpacity)
+      .scale({
+        x: this.overlayScale,
+        y: this.overlayScale
+      })
     }
   }
 }

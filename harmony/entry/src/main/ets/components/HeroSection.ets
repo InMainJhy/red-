@@ -14,36 +14,63 @@ export interface HeroSectionProps {
 
 @Component
 export struct HeroSection {
-  @Prop selectedProfileName: string = ''
-  @Prop connectionLabel: string = '连接中'
+  @Prop public selectedProfileName: string = ''
+  @Prop public connectionLabel: string = '连接中'
   @State private lineOpacity: number = 0
+  @State private lineScaleY: number = 0
   @State private contentOpacity: number = 0
   @State private chipOpacity: number = 0
   @State private badgeTranslateY: number = 12
+  @State private glowOpacity: number = 0
+  @State private dotScale: number = 0
 
   aboutToAppear(): void {
+    // 光晕淡入
     setTimeout(() => {
       animateTo({
-        duration: AnimationDuration.normal,
+        duration: AnimationDuration.slower,
         curve: AnimationCurve.emphasized
       }, () => {
-        this.lineOpacity = 1
+        this.glowOpacity = 1
       })
-    }, AnimationDuration.fast)
+    }, 0)
 
+    // 线条从上到下生长
     setTimeout(() => {
       animateTo({
         duration: AnimationDuration.slow,
-        curve: AnimationCurve.emphasized
+        curve: Curve.FastOutSlowIn
+      }, () => {
+        this.lineOpacity = 1
+        this.lineScaleY = 1
+      })
+    }, AnimationDuration.instant)
+
+    // 标题内容淡入
+    setTimeout(() => {
+      animateTo({
+        duration: AnimationDuration.slow,
+        curve: Curve.FastOutSlowIn
       }, () => {
         this.contentOpacity = 1
       })
-    }, AnimationDuration.normal)
+    }, AnimationDuration.fast)
 
+    // 装饰点弹出
     setTimeout(() => {
       animateTo({
         duration: AnimationDuration.normal,
-        curve: AnimationCurve.emphasized
+        curve: Curve.FastOutSlowIn
+      }, () => {
+        this.dotScale = 1
+      })
+    }, AnimationDuration.normal)
+
+    // 状态标签滑入
+    setTimeout(() => {
+      animateTo({
+        duration: AnimationDuration.normal,
+        curve: Curve.FastOutSlowIn
       }, () => {
         this.chipOpacity = 1
         this.badgeTranslateY = 0
@@ -73,6 +100,11 @@ export struct HeroSection {
         .backgroundColor('rgba(99, 102, 241, 0.08)')
         .blur(36)
         .position({ x: -28, y: -18 })
+        .opacity(this.glowOpacity)
+        .scale({
+          x: this.glowOpacity * 0.2 + 0.8,
+          y: this.glowOpacity * 0.2 + 0.8
+        })
 
       Row({ space: Spacing.sm }) {
         Column()
@@ -85,17 +117,13 @@ export struct HeroSection {
           })
           .scale({
             x: 1,
-            y: this.lineOpacity > 0 ? 1 : 0
+            y: this.lineScaleY
           })
           .opacity(this.lineOpacity)
-          .animation({
-            duration: AnimationDuration.normal,
-            curve: AnimationCurve.emphasized
-          })
 
         Column({ space: Spacing.sm }) {
           Row({ space: Spacing.sm }) {
-            Text('灵感岛屿')
+            Text('时序人格')
               .fontSize(Typography.size.display)
               .fontWeight(FontWeight.Bold)
               .fontColor(Colors.textPrimary)
@@ -116,12 +144,30 @@ export struct HeroSection {
               .backgroundColor('#F59E0B')
               .margin({ top: 12 })
               .opacity(this.contentOpacity)
-              .animation({
-                duration: AnimationDuration.slow,
-                curve: AnimationCurve.emphasized
+              .scale({
+                x: this.dotScale,
+                y: this.dotScale
               })
           }
           .width('100%')
+
+          Text('Chronological Persona')
+            .fontSize(Typography.size.sm)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('rgba(99, 102, 241, 0.72)')
+            .letterSpacing(1.6)
+            .fontStyle(FontStyle.Italic)
+            .width('100%')
+            .opacity(this.contentOpacity)
+            .translate({
+              x: this.contentOpacity > 0 ? 0 : -16,
+              y: 0
+            })
+            .animation({
+              duration: AnimationDuration.slow,
+              delay: AnimationDuration.fast,
+              curve: AnimationCurve.emphasized
+            })
 
           Text('收集与创造多元思想切片')
             .fontSize(Typography.size.bodyLg)

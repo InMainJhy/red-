@@ -1,0 +1,12 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/ProfileDetail",
+    "pages/MeetingComposer",
+    "pages/Arena",
+    "pages/FusionWorkbench",
+    "pages/SmartQuestionPrep",
+    "pages/CreateRole",
+    "pages/ExplorePersonas"
+  ]
+}

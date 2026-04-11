@@ -61,4 +61,31 @@ export default class EntryAbility extends UIAbility {
     // Ability has back to background
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
   }
+
+  /**
+   * 处理从 NfcShareAbility 传来的碰一碰数据
+   * 当另一台设备碰一碰后，NfcShareAbility 解析 tag 数据并通过 startAbility 启动 EntryAbility
+   * 此处拦截 want 中的碰一碰参数，跳转到纪要详情页
+   */
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    hilog.info(DOMAIN, 'testTag', 'onNewWant received');
+
+    const fromNfc = want.parameters?.['fromNfc'] as boolean | undefined;
+    if (fromNfc) {
+      const nfcShareData = want.parameters?.['nfcShareData'] as string | undefined;
+      const summaryId = want.parameters?.['summaryId'] as string | undefined;
+
+      hilog.info(DOMAIN, 'testTag', '收到碰一碰数据: summaryId=%{public}s', summaryId || 'null');
+
+      if (summaryId && summaryId.length > 0) {
+        // 通过 eventHub 通知 UI 层有碰一碰数据到达
+        // Index 页面或其他页面可以通过订阅 'nfcShareReceived' 事件来响应
+        this.context.eventHub.emit('nfcShareReceived', {
+          summaryId: summaryId,
+          nfcShareData: nfcShareData
+        });
+        hilog.info(DOMAIN, 'testTag', '已通过 eventHub 发送碰一碰数据');
+      }
+    }
+  }
 }

@@ -1,20 +1,18 @@
-# Time Persona 前端 API 接入文档
+﻿# Time Persona 鍓嶇 API 鎺ュ叆鏂囨。
 
-最后更新：2026-04-08
+鏈€鍚庢洿鏂帮細2026-04-08
 
-## 1. 概述
+## 1. 姒傝堪
 
-本文档描述了前端如何接入后端 Time Persona Backend API。已完成的接入点位于 `entry/src/main/ets/service/PersonaApi.ets`。
+鏈枃妗ｆ弿杩颁簡鍓嶇濡備綍鎺ュ叆鍚庣 Time Persona Backend API銆傚凡瀹屾垚鐨勬帴鍏ョ偣浣嶄簬 `entry/src/main/ets/service/PersonaApi.ets`銆?
+## 2. 鍚庣鏈嶅姟鍦板潃
 
-## 2. 后端服务地址
-
-### 线上服务（已接入）
-```
+### 绾夸笂鏈嶅姟锛堝凡鎺ュ叆锛?```
 https://hackhathon.69d5c46af2ab61f5dd649c62.servers.onzeabur.com
 ```
 
-### 超时配置
-| 接口 | 超时时间 |
+### 瓒呮椂閰嶇疆
+| 鎺ュ彛 | 瓒呮椂鏃堕棿 |
 |------|---------|
 | `/api/presets` | 15s |
 | `/api/profiles/:id` | 20s |
@@ -23,45 +21,36 @@ https://hackhathon.69d5c46af2ab61f5dd649c62.servers.onzeabur.com
 | `/api/arena/run` | 300s |
 | `/api/arena/stream` | 300s |
 
-## 3. 已实现的 API 方法
+## 3. 宸插疄鐜扮殑 API 鏂规硶
 
-### 3.1 健康检查
-```typescript
+### 3.1 鍋ュ悍妫€鏌?```typescript
 PersonaApi.checkHealth(): Promise<HealthCheckResponse | null>
 ```
-检查后端服务状态，返回服务信息和导入状态。
-
-### 3.2 获取预设人物列表
+妫€鏌ュ悗绔湇鍔＄姸鎬侊紝杩斿洖鏈嶅姟淇℃伅鍜屽鍏ョ姸鎬併€?
+### 3.2 鑾峰彇棰勮浜虹墿鍒楄〃
 ```typescript
 PersonaApi.getPresets(): Promise<PresetProfile[]>
 ```
-获取默认人物卡片列表。
-
-### 3.3 获取人物完整数据
+鑾峰彇榛樿浜虹墿鍗＄墖鍒楄〃銆?
+### 3.3 鑾峰彇浜虹墿瀹屾暣鏁版嵁
 ```typescript
 PersonaApi.getProfileBundle(profileId: string): Promise<ProfileBundle>
 ```
-获取某个人物的完整 bundle，包含 profile、nodes、agents 和 sourceDocument。
-
-### 3.4 获取选中的 Agents
+鑾峰彇鏌愪釜浜虹墿鐨勫畬鏁?bundle锛屽寘鍚?profile銆乶odes銆乤gents 鍜?sourceDocument銆?
+### 3.4 鑾峰彇閫変腑鐨?Agents
 ```typescript
 PersonaApi.getSelectedAgents(profileId: string, selectedAgentIds: string[]): Promise<SelectedAgentsBundle>
 ```
-获取指定人物的选中 agents。
-
-### 3.5 创建自定义人物
-```typescript
+鑾峰彇鎸囧畾浜虹墿鐨勯€変腑 agents銆?
+### 3.5 鍒涘缓鑷畾涔変汉鐗?```typescript
 PersonaApi.importCustomProfile(displayName: string, biography: string): Promise<ProfileBundle>
 ```
-根据用户输入的 displayName + biography 生成时间线节点和人格 agents。
-
-### 3.6 运行 Arena 讨论（非流式）
-```typescript
+鏍规嵁鐢ㄦ埛杈撳叆鐨?displayName + biography 鐢熸垚鏃堕棿绾胯妭鐐瑰拰浜烘牸 agents銆?
+### 3.6 杩愯 Arena 璁ㄨ锛堥潪娴佸紡锛?```typescript
 PersonaApi.runArena(topic: string, selectedAgents: PersonaSpec[], mode: ArenaMode): Promise<ArenaRun>
 ```
-一次性返回完整的 arena 结果。
-
-### 3.7 运行 Arena 讨论（流式）
+涓€娆℃€ц繑鍥炲畬鏁寸殑 arena 缁撴灉銆?
+### 3.7 杩愯 Arena 璁ㄨ锛堟祦寮忥級
 ```typescript
 PersonaApi.streamArena(
   topic: string,
@@ -72,67 +61,66 @@ PersonaApi.streamArena(
   onComplete?: SSECompleteHandler
 ): Promise<void>
 ```
-以 SSE 方式实时返回 arena 执行过程。
+浠?SSE 鏂瑰紡瀹炴椂杩斿洖 arena 鎵ц杩囩▼銆?
+## 4. 鏁版嵁绫诲瀷
 
-## 4. 数据类型
+鎵€鏈夋暟鎹被鍨嬪畾涔変綅浜?`entry/src/main/ets/common/Models.ets`銆?
+### 4.1 鏍稿績绫诲瀷
 
-所有数据类型定义位于 `entry/src/main/ets/common/Models.ets`。
-
-### 4.1 核心类型
-
-| 类型 | 说明 |
+| 绫诲瀷 | 璇存槑 |
 |------|------|
-| `PresetProfile` | 人物卡片信息 |
-| `TimelineNode` | 时间线节点 |
-| `PersonaSpec` | 人格 Agent 规格 |
-| `ArenaMessage` | Arena 消息 |
-| `ArenaRun` | Arena 运行结果 |
+| `PresetProfile` | 浜虹墿鍗＄墖淇℃伅 |
+| `TimelineNode` | 鏃堕棿绾胯妭鐐?|
+| `PersonaSpec` | 浜烘牸 Agent 瑙勬牸 |
+| `ArenaMessage` | Arena 娑堟伅 |
+| `ArenaRun` | Arena 杩愯缁撴灉 |
 
-### 4.2 枚举类型
+### 4.2 鏋氫妇绫诲瀷
 
-| 枚举 | 值 |
+| 鏋氫妇 | 鍊?|
 |------|---|
 | `ArenaMode` | `'chat'` \| `'debate'` |
 | `TimelineStageType` | `'early'` \| `'turning-point'` \| `'stable'` \| `'crisis'` \| `'rebuild'` \| `'peak'` |
 | `ArenaStance` | `'support'` \| `'oppose'` \| `'reflective'` \| `'neutral'` |
 | `ArenaPhase` | `'opening'` \| `'reflection'` \| `'rebuttal'` \| `'synthesis'` \| `'closing'` |
 
-## 5. SSE 流式事件类型
+## 5. SSE 娴佸紡浜嬩欢绫诲瀷
 
-流式接口返回的事件类型：
+娴佸紡鎺ュ彛杩斿洖鐨勪簨浠剁被鍨嬶細
 
-| 事件类型 | 说明 |
+| 浜嬩欢绫诲瀷 | 璇存槑 |
 |----------|------|
-| `run_started` | 开始运行 |
-| `phase_started` | 阶段开始 |
-| `message` | 新消息 |
-| `phase_completed` | 阶段完成 |
-| `summary_started` | 总结开始 |
-| `summary` | 总结内容 |
-| `done` | 完成 |
-| `error` | 错误 |
+| `run_started` | 寮€濮嬭繍琛?|
+| `phase_started` | 闃舵寮€濮?|
+| `message` | 鏂版秷鎭?|
+| `phase_completed` | 闃舵瀹屾垚 |
+| `summary_started` | 鎬荤粨寮€濮?|
+| `summary` | 鎬荤粨鍐呭 |
+| `done` | 瀹屾垚 |
+| `error` | 閿欒 |
 
-## 6. 页面集成情况
+## 6. 椤甸潰闆嗘垚鎯呭喌
 
-| 页面 | 使用的 API |
+| 椤甸潰 | 浣跨敤鐨?API |
 |------|----------|
 | `Index.ets` | `getPresets()`, `getProfileBundle()`, `importCustomProfile()`, `runArena()` |
 | `ProfileDetail.ets` | `getProfileBundle()` |
 | `Arena.ets` | `getSelectedAgents()`, `runArena()` |
 | `CreateRole.ets` | `importCustomProfile()` |
 
-## 7. 错误处理
+## 7. 閿欒澶勭悊
 
-API 服务已内置以下错误处理：
+API 鏈嶅姟宸插唴缃互涓嬮敊璇鐞嗭細
 
-1. **自动降级**：当线上服务不可用时，自动使用 Mock 数据
-2. **连接状态指示**：`PersonaApi.getConnectionLabel()` 返回当前连接状态
-3. **字段级错误提示**：解析 Zod 验证错误
+1. **API-only mode**: when the online service is unavailable, the app now reports an error instead of showing fallback content.
+2. **杩炴帴鐘舵€佹寚绀?*锛歚PersonaApi.getConnectionLabel()` 杩斿洖褰撳墠杩炴帴鐘舵€?3. **瀛楁绾ч敊璇彁绀?*锛氳В鏋?Zod 楠岃瘉閿欒
 
-## 8. 注意事项
+## 8. 娉ㄦ剰浜嬮」
 
-1. **不要只传 `selectedAgentIds` 给 arena**，必须把完整 `agents[]` 一起传
-2. **不要假设 `personId` 一定是英文 slug**，中文也是可能的
-3. **首屏不要把列表接口和详情接口串行绑死**
-4. **SSE 要忽略 `: ping` 心跳消息**
-5. **自定义人物创建需要 biography 至少 10 个字符**
+1. **涓嶈鍙紶 `selectedAgentIds` 缁?arena**锛屽繀椤绘妸瀹屾暣 `agents[]` 涓€璧蜂紶
+2. **涓嶈鍋囪 `personId` 涓€瀹氭槸鑻辨枃 slug**锛屼腑鏂囦篃鏄彲鑳界殑
+3. **棣栧睆涓嶈鎶婂垪琛ㄦ帴鍙ｅ拰璇︽儏鎺ュ彛涓茶缁戞**
+4. **SSE 瑕佸拷鐣?`: ping` 蹇冭烦娑堟伅**
+5. **鑷畾涔変汉鐗╁垱寤洪渶瑕?biography 鑷冲皯 10 涓瓧绗?*
+
+

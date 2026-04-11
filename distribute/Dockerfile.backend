@@ -1,0 +1,21 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+# 复制后端源码
+COPY backend/package*.json ./
+RUN npm install
+
+COPY backend/tsconfig.json ./
+COPY backend/src/ ./src/
+
+# TypeScript 编译
+RUN npm run build
+
+# 环境变量
+ENV NODE_ENV=production
+ENV PORT=3030
+
+EXPOSE 3030
+
+CMD ["node", "dist/server.js"]

@@ -1,12 +1,13 @@
 import { Colors } from '../common/styles/Colors'
 import { Typography } from '../common/styles/Typography'
 import { BorderRadius } from '../common/styles/BorderRadius'
-import { Spacing } from '../common/styles/Spacing'
+import { Spacing, MobileSpacing } from '../common/styles/Spacing'
 import { PresetProfile } from '../common/Models'
 import {
   AnimationDuration,
   AnimationCurve
 } from '../common/styles/Animation'
+import { PersonaAvatar } from './PersonaAvatar'
 
 export interface RoleCardProps {
   profile: PresetProfile
@@ -26,39 +27,46 @@ const AVATAR_COLORS: Record<string, string[]> = {
 
 @Component
 export struct RoleCard {
-  @Prop profile: PresetProfile
-  @Prop isActive: boolean
-  @Prop index: number = 0
+  @Prop public profile: PresetProfile
+  @Prop public isActive: boolean
+  @Prop public index: number = 0
   @State private isPressed: boolean = false
+  @State private isHovered: boolean = false
   @State private cardOpacity: number = 0
   @State private cardTranslateY: number = 30
   @State private avatarScale: number = 0.5
   @State private contentOpacity: number = 0
-  onCardClick: (profile: PresetProfile) => void = () => {}
-  onViewTimeline: () => void = () => {}
+  @State private avatarRotate: number = -15
+  @State private highlightOpacity: number = 0
+  public onCardClick: (profile: PresetProfile) => void = () => {}
+  public onViewTimeline: () => void = () => {}
 
   aboutToAppear(): void {
     const delay = this.index * 60
 
+    // 头像弹性入场
     setTimeout(() => {
       animateTo({
-        duration: AnimationDuration.slow,
-        curve: AnimationCurve.bounce
+        duration: AnimationDuration.slower,
+        curve: Curve.FastOutSlowIn,
       }, () => {
         this.avatarScale = 1
+        this.avatarRotate = 0
       })
     }, delay)
 
+    // 卡片滑入
     setTimeout(() => {
       animateTo({
         duration: AnimationDuration.slow,
-        curve: AnimationCurve.emphasized
+        curve: Curve.FastOutSlowIn
       }, () => {
         this.cardOpacity = 1
         this.cardTranslateY = 0
       })
-    }, delay + 90)
+    }, delay + 80)
 
+    // 内容淡入
     setTimeout(() => {
       animateTo({
         duration: AnimationDuration.normal,
@@ -66,16 +74,21 @@ export struct RoleCard {
       }, () => {
         this.contentOpacity = 1
       })
-    }, delay + 170)
+    }, delay + 150)
+
+    // 高亮标签延迟出现
+    setTimeout(() => {
+      animateTo({
+        duration: AnimationDuration.fast,
+        curve: AnimationCurve.emphasized
+      }, () => {
+        this.highlightOpacity = 1
+      })
+    }, delay + 220)
   }
 
   private getAvatarGradient(): string[] {
     return AVATAR_COLORS[this.profile.id] || AVATAR_COLORS['default']
-  }
-
-  private getAvatarChar(): string {
-    const name = this.profile.displayName
-    return name.length > 0 ? name.charAt(0) : '?'
   }
 
   private getCategoryLabel(): string {
@@ -94,55 +107,43 @@ export struct RoleCard {
 
   build() {
     Stack({ alignContent: Alignment.TopEnd }) {
-      Column({ space: Spacing.md }) {
-        Row({ space: Spacing.card.medium }) {
-          Row({ space: Spacing.card.large }) {
+      Column({ space: MobileSpacing.md }) {
+        Row({ space: MobileSpacing.card.medium }) {
+          Row({ space: MobileSpacing.card.large }) {
             Column() {
-              Stack({ alignContent: Alignment.Center }) {
-                Column()
-                  .width(56)
-                  .height(56)
-                  .borderRadius(28)
-                  .linearGradient({
-                    direction: GradientDirection.Bottom,
-                    colors: [
-                      [this.getAvatarGradient()[0], 0],
-                      [this.getAvatarGradient()[1], 0.55],
-                      [this.getAvatarGradient()[2], 1]
-                    ]
-                  })
-
-                Column()
-                  .width(44)
-                  .height(44)
-                  .borderRadius(22)
-                  .backgroundColor(this.isActive ? 'rgba(99, 102, 241, 0.18)' : 'rgba(255, 255, 255, 0.55)')
-
-                Text(this.getAvatarChar())
-                  .fontSize(Typography.size.subtitle)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(this.isActive ? '#FFFFFF' : Colors.primary)
-              }
+              PersonaAvatar({
+                personaId: this.profile.id,
+                displayName: this.profile.displayName,
+                coverSeed: this.profile.coverSeed,
+                avatarSize: 48,
+                highlighted: this.isActive,
+                fallbackColors: this.getAvatarGradient()
+              })
             }
             .scale({
               x: this.avatarScale,
               y: this.avatarScale
             })
-            .animation({
-              duration: AnimationDuration.slow,
-              curve: AnimationCurve.bounce
+            .rotate({
+              angle: this.avatarRotate,
+              centerX: '50%',
+              centerY: '50%'
             })
             .shadow({
-              radius: this.isActive ? 14 : 10,
-              color: this.isActive ? 'rgba(99, 102, 241, 0.18)' : 'rgba(15, 23, 42, 0.08)',
+              radius: this.isActive ? 14 : (this.isHovered ? 10 : 8),
+              color: this.isActive ? 'rgba(99, 102, 241, 0.22)' : 'rgba(15, 23, 42, 0.08)',
               offsetX: 0,
-              offsetY: this.isActive ? 5 : 3
+              offsetY: this.isActive ? 5 : (this.isHovered ? 3 : 2)
+            })
+            .animation({
+              duration: AnimationDuration.normal,
+              curve: Curve.FastOutSlowIn
             })
 
-            Column({ space: 7 }) {
-              Row({ space: Spacing.xs }) {
+            Column({ space: 5 }) {
+              Row({ space: MobileSpacing.xs }) {
                 Text(this.profile.displayName)
-                  .fontSize(Typography.size.subtitle)
+                  .fontSize(Typography.size.body)
                   .fontWeight(FontWeight.Bold)
                   .fontColor(Colors.textPrimary)
                   .maxLines(1)
@@ -155,10 +156,10 @@ export struct RoleCard {
                     .fontWeight(FontWeight.Bold)
                     .fontColor(Colors.primary)
                     .padding({
-                      left: Spacing.sm,
-                      right: Spacing.sm,
-                      top: 3,
-                      bottom: 3
+                      left: MobileSpacing.xs,
+                      right: MobileSpacing.xs,
+                      top: 2,
+                      bottom: 2
                     })
                     .backgroundColor('rgba(99, 102, 241, 0.10)')
                     .borderRadius(BorderRadius.pill)
@@ -171,14 +172,14 @@ export struct RoleCard {
               Text(this.profile.subtitle)
                 .fontSize(Typography.size.caption)
                 .fontColor(Colors.textTertiary)
-                .maxLines(2)
+                .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .lineHeight(18)
+                .lineHeight(16)
                 .opacity(this.contentOpacity)
                 .translate({ x: this.contentOpacity > 0 ? 0 : -8 })
 
-              Row({ space: 6 }) {
-                Row({ space: 4 }) {
+              Row({ space: 5 }) {
+                Row({ space: 3 }) {
                   Column()
                     .width(4)
                     .height(4)
@@ -190,10 +191,10 @@ export struct RoleCard {
                     .fontColor(Colors.textSecondary)
                 }
                 .padding({
-                  left: Spacing.sm,
-                  right: Spacing.sm,
-                  top: 4,
-                  bottom: 4
+                  left: MobileSpacing.xs,
+                  right: MobileSpacing.xs,
+                  top: 3,
+                  bottom: 3
                 })
                 .backgroundColor('rgba(99, 102, 241, 0.08)')
                 .borderRadius(BorderRadius.pill)
@@ -203,10 +204,10 @@ export struct RoleCard {
                     .fontSize(Typography.size.xs)
                     .fontColor(Colors.textMuted)
                     .padding({
-                      left: Spacing.sm,
-                      right: Spacing.sm,
-                      top: 4,
-                      bottom: 4
+                      left: MobileSpacing.xs,
+                      right: MobileSpacing.xs,
+                      top: 3,
+                      bottom: 3
                     })
                     .backgroundColor('rgba(241, 245, 249, 0.85)')
                     .borderRadius(BorderRadius.pill)
@@ -227,27 +228,36 @@ export struct RoleCard {
 
         if (this.getHighlightPreview().length > 0) {
           Flex({ wrap: FlexWrap.Wrap }) {
-            ForEach(this.getHighlightPreview(), (item: string) => {
+            ForEach(this.getHighlightPreview(), (item: string, idx: number) => {
               Text(item)
                 .fontSize(Typography.size.xs)
                 .fontColor(Colors.textSecondary)
                 .padding({
-                  left: Spacing.sm,
-                  right: Spacing.sm,
-                  top: 4,
-                  bottom: 4
+                  left: MobileSpacing.xs,
+                  right: MobileSpacing.xs,
+                  top: 3,
+                  bottom: 3
                 })
                 .backgroundColor('rgba(255, 255, 255, 0.78)')
                 .borderRadius(BorderRadius.chip)
-                .margin({ right: Spacing.xs, bottom: Spacing.xs })
+                .margin({ right: MobileSpacing.xs, bottom: MobileSpacing.xs })
+                .opacity(this.highlightOpacity)
+                .scale({
+                  x: this.highlightOpacity,
+                  y: this.highlightOpacity
+                })
+                .animation({
+                  duration: AnimationDuration.normal,
+                  curve: Curve.FastOutSlowIn,
+                  delay: idx * 40
+                })
             }, (item: string) => item)
           }
           .width('100%')
-          .opacity(this.contentOpacity)
         }
       }
       .width('100%')
-      .padding(Spacing.card.large)
+      .padding(MobileSpacing.card.large)
       .backgroundColor(this.isActive ? 'rgba(255, 255, 255, 0.92)' : Colors.cardPrimary)
       .borderRadius(BorderRadius.huge)
       .border({
@@ -256,40 +266,50 @@ export struct RoleCard {
         radius: BorderRadius.huge
       })
       .shadow({
-        radius: this.isActive ? 24 : (this.isPressed ? 8 : 12),
+        radius: this.isActive ? 20 : (this.isPressed ? 8 : 10),
         color: this.isActive ? 'rgba(99, 102, 241, 0.14)' : (this.isPressed ? 'rgba(15, 23, 42, 0.06)' : 'rgba(15, 23, 42, 0.05)'),
         offsetX: 0,
-        offsetY: this.isActive ? 8 : (this.isPressed ? 2 : 4)
+        offsetY: this.isActive ? 6 : (this.isPressed ? 2 : 3)
       })
       .scale({
-        x: this.isPressed ? 0.985 : 1,
-        y: this.isPressed ? 0.985 : 1
+        x: this.isPressed ? 0.98 : 1,
+        y: this.isPressed ? 0.98 : 1
       })
       .animation({
         duration: AnimationDuration.fast,
-        curve: AnimationCurve.emphasized
+        curve: Curve.Sharp
       })
       .onTouch((event: TouchEvent) => {
         if (event.type === TouchType.Down) {
-          this.isPressed = true
+          animateTo({
+            duration: AnimationDuration.instant,
+            curve: Curve.Sharp
+          }, () => {
+            this.isPressed = true
+          })
         } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-          this.isPressed = false
+          animateTo({
+            duration: AnimationDuration.fast,
+            curve: Curve.FastOutSlowIn
+          }, () => {
+            this.isPressed = false
+          })
         }
       })
 
       Row() {
         Text('⋯')
-          .fontSize(20)
+          .fontSize(18)
           .fontColor(Colors.textMuted)
           .fontWeight(FontWeight.Bold)
       }
-      .width(30)
-      .height(30)
+      .width(28)
+      .height(28)
       .backgroundColor('rgba(255, 255, 255, 0.70)')
-      .borderRadius(15)
+      .borderRadius(14)
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
-      .margin({ top: Spacing.sm, right: Spacing.sm })
+      .margin({ top: MobileSpacing.xs, right: MobileSpacing.xs })
       .hitTestBehavior(HitTestMode.Block)
       .bindMenu([
         {
