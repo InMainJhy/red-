@@ -1,7 +1,4 @@
 import { common } from '@kit.AbilityKit'
-import fileIo from '@ohos.file.fs'
-import picker from '@ohos.file.picker'
-import fileUri from '@ohos.file.fileuri'
 import router from '@ohos.router'
 import promptAction from '@ohos.promptAction'
 import { fetchSafeAreaInsets } from '../common/WindowSafeArea'
@@ -11,28 +8,58 @@ import { BorderRadius } from '../common/styles/BorderRadius'
 import { Spacing } from '../common/styles/Spacing'
 import { AnimationDuration, AnimationCurve } from '../common/styles/Animation'
 import { Icon, IconType } from '../components/CustomIcon'
-import { ProfileImportResponse, ProfileImportType } from '../common/Models'
 import { PersonaApi } from '../service/PersonaApi'
 
 const FALLBACK_SAFE_TOP_VP: number = 52
-const IMPORT_CACHE_DIR_NAME: string = 'profile-imports'
-const SUPPORTED_IMPORT_SUFFIX_FILTERS: string[] = ['.txt', '.md', '.markdown', '.csv', '.log', '.json', '.html', '.htm', '.xml', '.epub']
-const SUPPORTED_IMPORT_FORMATS_TEXT: string = '.txt / .md / .csv / .json / .html / .xml / .epub'
 
 interface TabItem {
   title: string
   iconType: IconType
 }
 
-interface SelectedImportFile {
-  uri: string
-  fileName: string
+interface MockWeChatRecord {
+  id: string
+  contactName: string
+  title: string
+  preview: string
+  biography: string
 }
 
-interface UploadFileResult {
-  filePath: string
-  cleanupPath?: string
+interface AIDialogMessage {
+  id: string
+  sender: string
+  text: string
 }
+
+const MOCK_WECHAT_RECORDS: MockWeChatRecord[] = [
+  {
+    id: 'dad',
+    contactName: '爸爸',
+    title: '爸爸（家庭群）.txt',
+    preview: '“别太拼，注意按时吃饭。工作是做不完的，人要先顾好自己。”',
+    biography: '爸爸的聊天记录显示他是典型务实型长辈，表达克制但非常关心家人。常提醒作息、饮食和财务规划，价值观偏稳定与责任，遇事先考虑风险和长期后果。说话简短直接，但会在细节处给支持。'
+  },
+  {
+    id: 'mom',
+    contactName: '妈妈',
+    title: '妈妈（私聊）.txt',
+    preview: '“今天降温了，多穿一件。你忙的时候也要记得回我一句平安。”',
+    biography: '妈妈的聊天记录体现出高情绪敏感与照料倾向，擅长通过日常问候建立安全感。沟通温柔细腻，关注身体状态和情绪波动，处理冲突时更倾向安抚与协商。人物特征偏共情、耐心、重家庭联结。'
+  },
+  {
+    id: 'boyfriend',
+    contactName: '男朋友',
+    title: '男朋友（置顶聊天）.txt',
+    preview: '“你想冲就冲，我在。要是累了我们就先停一下，慢慢来。”',
+    biography: '男朋友的聊天记录呈现出陪伴型与鼓励型特征，表达风格轻松直接，注重“同频沟通”和及时反馈。面对压力议题时偏支持探索，强调尊重个人选择，同时具备一定行动导向和问题拆解能力。'
+  }
+]
+
+const AI_PERSONALITY_QUESTIONS: string[] = [
+  '当计划被临时打乱时，你通常会怎么做？',
+  '在团队讨论中，你更常扮演推动决策的人，还是倾听协调的人？',
+  '面对长期压力时，你一般靠什么方式恢复状态？'
+]
 
 @Entry
 @Component
@@ -47,10 +74,17 @@ export struct CreateRole {
 
   @State private contentOpacity: number = 0
   @State private contentTranslateY: number = 30
-  @State private wechatImportFileUri: string = ''
-  @State private wechatImportFileName: string = ''
-  @State private chatImportFileUri: string = ''
-  @State private chatImportFileName: string = ''
+  @State private showWeChatPicker: boolean = false
+  @State private selectedWeChatRecordId: string = ''
+  @State private showAIDialogueModal: boolean = false
+  @State private aiInputText: string = ''
+  @State private aiMessages: AIDialogMessage[] = []
+  @State private aiStep: number = 0
+  @State private aiQuestionIndex: number = 0
+  @State private aiNameAnswer: string = ''
+  @State private aiBackgroundAnswer: string = ''
+  @State private aiPersonalityAnswers: string[] = []
+  @State private aiConversationDone: boolean = false
 
   aboutToAppear(): void {
     this.loadSafeInsets()
@@ -100,7 +134,7 @@ export struct CreateRole {
     })
   }
 
-  async createRole(): Promise<void> {
+  createRole(): void {
     if (!this.roleName.trim()) {
       promptAction.showToast({ message: '请输入人物名称' })
       return
@@ -112,26 +146,6 @@ export struct CreateRole {
     }
 
     this.isLoading = true
-
-    try {
-      const roleName = this.roleName.trim()
-      const biography = this.biography.trim()
-      promptAction.showToast({ message: '\u6b63\u5728\u89e3\u6790\u4eba\u7269\u6750\u6599\uff0c\u53ef\u80fd\u9700\u8981\u4e00\u6bb5\u65f6\u95f4' })
-      const response = await PersonaApi.importProfile({
-        importType: 'manual',
-        fileName: `${this.sanitizeFileName(roleName)}.txt`,
-        mimeType: 'text/plain',
-        title: `${roleName} profile notes`,
-        displayNameHint: roleName,
-        fileData: this.buildManualImportContent(roleName, biography)
-      })
-      this.handleImportSuccess(response)
-    } catch (error) {
-      promptAction.showToast({ message: this.formatImportError(error as Error) })
-    } finally {
-      this.isLoading = false
-    }
-    return
 
     PersonaApi.importCustomProfile(this.roleName.trim(), this.biography.trim())
       .then((bundle) => {
@@ -152,362 +166,141 @@ export struct CreateRole {
   }
 
   uploadWeChat(): void {
-    void this.selectImportFile('wechat')
-    return
-    promptAction.showToast({ message: '请选择微信聊天记录文件（仅支持 .txt 格式）' })
+    this.showWeChatPicker = true
+  }
+
+  closeWeChatPicker(): void {
+    this.showWeChatPicker = false
+  }
+
+  selectMockWeChatRecord(record: MockWeChatRecord): void {
+    this.selectedWeChatRecordId = record.id
+    this.roleName = record.contactName
+    this.biography = record.biography
+    this.currentTab = 0
+    this.showWeChatPicker = false
+    promptAction.showToast({ message: `已选择 ${record.title}` })
+  }
+
+  getSelectedWeChatRecord(): MockWeChatRecord | null {
+    const found = MOCK_WECHAT_RECORDS.find((item: MockWeChatRecord) => item.id === this.selectedWeChatRecordId)
+    return found ? found : null
+  }
+
+  getSelectedWeChatRecordTitle(): string {
+    const selected = this.getSelectedWeChatRecord()
+    return selected ? selected.title : ''
   }
 
   startAIDialogue(): void {
-    router.pushUrl({
-      url: 'pages/AIDialogueCreateRole'
-    })
+    this.showAIDialogueModal = true
+    this.aiInputText = ''
+    this.aiMessages = []
+    this.aiStep = 0
+    this.aiQuestionIndex = 0
+    this.aiNameAnswer = ''
+    this.aiBackgroundAnswer = ''
+    this.aiPersonalityAnswers = []
+    this.aiConversationDone = false
+    this.appendAIMessage('你好，我会帮你生成角色画像。我们先从姓名开始，请告诉我这个角色的姓名。')
+  }
+
+  closeAIDialogueModal(): void {
+    this.showAIDialogueModal = false
+  }
+
+  appendAIMessage(text: string): void {
+    const next: AIDialogMessage = {
+      id: `ai-${this.aiMessages.length + 1}`,
+      sender: 'ai',
+      text
+    }
+    this.aiMessages = [...this.aiMessages, next]
+  }
+
+  appendUserMessage(text: string): void {
+    const next: AIDialogMessage = {
+      id: `user-${this.aiMessages.length + 1}`,
+      sender: 'user',
+      text
+    }
+    this.aiMessages = [...this.aiMessages, next]
+  }
+
+  submitAIDialogueInput(): void {
+    const text = this.aiInputText.trim()
+    if (!text) {
+      promptAction.showToast({ message: '请输入内容后再发送' })
+      return
+    }
+
+    this.appendUserMessage(text)
+    this.aiInputText = ''
+
+    if (this.aiStep === 0) {
+      this.aiNameAnswer = text
+      this.roleName = text
+      this.aiStep = 1
+      this.appendAIMessage(`好的，${text}。接下来请介绍一下 Ta 的背景经历（成长环境、关键事件、关系状态等）。`)
+      return
+    }
+
+    if (this.aiStep === 1) {
+      this.aiBackgroundAnswer = text
+      this.aiStep = 2
+      this.aiQuestionIndex = 0
+      this.appendAIMessage('收到。最后我会通过 3 个简短性格测试题来补全人格。')
+      this.appendAIMessage(`1/3 ${AI_PERSONALITY_QUESTIONS[0]}`)
+      return
+    }
+
+    if (this.aiStep === 2) {
+      this.aiPersonalityAnswers = [...this.aiPersonalityAnswers, text]
+      if (this.aiQuestionIndex < AI_PERSONALITY_QUESTIONS.length - 1) {
+        this.aiQuestionIndex = this.aiQuestionIndex + 1
+        const nextIndex = this.aiQuestionIndex + 1
+        this.appendAIMessage(`${nextIndex}/3 ${AI_PERSONALITY_QUESTIONS[this.aiQuestionIndex]}`)
+        return
+      }
+
+      this.aiStep = 3
+      this.aiConversationDone = true
+      this.biography = this.buildAIBiography()
+      this.currentTab = 0
+      promptAction.showToast({ message: 'AI对话已完成，信息已回填' })
+      this.closeAIDialogueModal()
+    }
+  }
+
+  buildAIBiography(): string {
+    const personalitySummary = this.buildPersonalitySummary()
+    const answerSummary = this.aiPersonalityAnswers.map((item: string, index: number) => {
+      return `Q${index + 1}: ${item}`
+    }).join('；')
+
+    const composed = `${this.aiBackgroundAnswer}\n\n【性格画像】${personalitySummary}\n【测试回答】${answerSummary}`
+    if (composed.length > 500) {
+      return `${composed.slice(0, 496)}...`
+    }
+    return composed
+  }
+
+  buildPersonalitySummary(): string {
+    const answers = this.aiPersonalityAnswers.join('；')
+    if (answers.includes('计划') || answers.includes('安排') || answers.includes('清单')) {
+      return '偏理性规划型，重视秩序与执行。'
+    }
+    if (answers.includes('沟通') || answers.includes('协调') || answers.includes('倾听')) {
+      return '偏共情协调型，重视关系和氛围。'
+    }
+    if (answers.includes('行动') || answers.includes('尝试') || answers.includes('直接')) {
+      return '偏行动探索型，倾向快速试错与推进。'
+    }
+    return '性格较均衡，兼具思考、共情与行动能力。'
   }
 
   getNameInitial(): string {
     return this.roleName.length > 0 ? this.roleName.charAt(0) : '?'
-  }
-
-  private buildManualImportContent(roleName: string, biography: string): string {
-    return `Name: ${roleName}\n\nBiography:\n${biography}\n`
-  }
-
-  private getCurrentImportType(): ProfileImportType {
-    if (this.currentTab === 1) {
-      return 'wechat'
-    }
-    if (this.currentTab === 2) {
-      return 'chat'
-    }
-    return 'manual'
-  }
-
-  private getOptionalDisplayNameHint(): string | undefined {
-    const value = this.roleName.trim()
-    return value.length > 0 ? value : undefined
-  }
-
-  private getSelectedImportFile(importType: ProfileImportType): SelectedImportFile {
-    if (importType === 'wechat') {
-      return {
-        uri: this.wechatImportFileUri,
-        fileName: this.wechatImportFileName
-      }
-    }
-
-    if (importType === 'chat') {
-      return {
-        uri: this.chatImportFileUri,
-        fileName: this.chatImportFileName
-      }
-    }
-
-    return {
-      uri: '',
-      fileName: ''
-    }
-  }
-
-  private setSelectedImportFile(importType: ProfileImportType, file: SelectedImportFile): void {
-    if (importType === 'wechat') {
-      this.wechatImportFileUri = file.uri
-      this.wechatImportFileName = file.fileName
-      return
-    }
-
-    if (importType === 'chat') {
-      this.chatImportFileUri = file.uri
-      this.chatImportFileName = file.fileName
-    }
-  }
-
-  private canTriggerPrimaryAction(): boolean {
-    if (this.isLoading) {
-      return false
-    }
-
-    if (this.getCurrentImportType() === 'manual') {
-      return this.roleName.trim().length > 0 && this.biography.trim().length >= 10
-    }
-
-    return true
-  }
-
-  private getPrimaryActionLabel(): string {
-    if (this.isLoading) {
-      return this.getCurrentImportType() === 'manual'
-        ? '\u89e3\u6790\u4e2d...'
-        : '\u5bfc\u5165\u4e2d...'
-    }
-
-    if (this.getCurrentImportType() === 'manual') {
-      return '\u521b\u5efa\u5e76\u5bfc\u5165'
-    }
-
-    const selectedFile = this.getSelectedImportFile(this.getCurrentImportType())
-    return selectedFile.fileName.length > 0
-      ? '\u5f00\u59cb\u5bfc\u5165'
-      : '\u9009\u62e9\u6587\u4ef6\u5e76\u5bfc\u5165'
-  }
-
-  private getSelectButtonLabel(importType: ProfileImportType): string {
-    const selectedFile = this.getSelectedImportFile(importType)
-    if (selectedFile.fileName.length > 0) {
-      return '\u91cd\u65b0\u9009\u62e9\u6587\u4ef6'
-    }
-    return importType === 'wechat'
-      ? '\u9009\u62e9\u804a\u5929\u8bb0\u5f55\u6587\u4ef6'
-      : '\u9009\u62e9\u5bf9\u8bdd\u8bb0\u5f55\u6587\u4ef6'
-  }
-
-  private getSelectedFileSummary(importType: ProfileImportType): string {
-    const selectedFile = this.getSelectedImportFile(importType)
-    if (selectedFile.fileName.length > 0) {
-      return `\u5df2\u9009\u62e9\uff1a${selectedFile.fileName}`
-    }
-    return `\u652f\u6301\u683c\u5f0f\uff1a${SUPPORTED_IMPORT_FORMATS_TEXT}`
-  }
-
-  private stripFileExtension(fileName: string): string {
-    const dotIndex = fileName.lastIndexOf('.')
-    if (dotIndex <= 0) {
-      return fileName
-    }
-    return fileName.substring(0, dotIndex)
-  }
-
-  private sanitizeFileName(value: string): string {
-    const sanitized = value
-      .replace(/[\\/:*?"<>|\s]+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
-    return sanitized.length > 0 ? sanitized : 'profile-import'
-  }
-
-  private guessMimeType(fileName: string): string {
-    const normalized = fileName.toLowerCase()
-    if (normalized.endsWith('.md') || normalized.endsWith('.markdown')) {
-      return 'text/markdown'
-    }
-    if (normalized.endsWith('.csv')) {
-      return 'text/csv'
-    }
-    if (normalized.endsWith('.json')) {
-      return 'application/json'
-    }
-    if (normalized.endsWith('.html') || normalized.endsWith('.htm')) {
-      return 'text/html'
-    }
-    if (normalized.endsWith('.xml')) {
-      return 'application/xml'
-    }
-    if (normalized.endsWith('.epub')) {
-      return 'application/epub+zip'
-    }
-    return 'text/plain'
-  }
-
-  private extractFileName(source: string): string {
-    try {
-      const uriValue = new fileUri.FileUri(source)
-      if (uriValue.name && uriValue.name.length > 0) {
-        return uriValue.name
-      }
-    } catch (_error) {
-    }
-
-    const cleanSource = source.split('?')[0]
-    const fileName = cleanSource.substring(cleanSource.lastIndexOf('/') + 1)
-    if (!fileName.length) {
-      return 'profile-import.txt'
-    }
-
-    try {
-      return decodeURIComponent(fileName)
-    } catch (_error) {
-      return fileName
-    }
-  }
-
-  private buildUploadSourceCandidates(source: string): string[] {
-    let candidates: string[] = []
-    if (source.length > 0) {
-      candidates.push(source)
-    }
-
-    try {
-      const uriValue = new fileUri.FileUri(source)
-      if (uriValue.path && uriValue.path.length > 0 && !candidates.includes(uriValue.path)) {
-        candidates.push(uriValue.path)
-      }
-    } catch (_error) {
-    }
-
-    return candidates
-  }
-
-  private buildImportTitle(fileName: string): string {
-    const title = this.stripFileExtension(fileName).trim()
-    return title.length > 0 ? title : 'Imported profile'
-  }
-
-  private formatPickerError(error: Error): string {
-    const message = error.message ? error.message : ''
-    if (!message.length || message.toLowerCase().includes('cancel')) {
-      return '\u672a\u9009\u62e9\u6587\u4ef6'
-    }
-    return `\u9009\u62e9\u6587\u4ef6\u5931\u8d25: ${message}`
-  }
-
-  private formatImportError(error: Error): string {
-    const message = error.message ? error.message : ''
-    const normalized = message.toLowerCase()
-    if (normalized.includes('504') || normalized.includes('gateway time-out') || normalized.includes('gateway timeout')) {
-      return '\u5bfc\u5165\u8017\u65f6\u8f83\u957f\uff0c\u670d\u52a1\u5668\u6682\u65f6\u8d85\u65f6\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5'
-    }
-    if (!message.length) {
-      return '\u5bfc\u5165\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5'
-    }
-    return `\u5bfc\u5165\u5931\u8d25: ${message}`
-  }
-
-  private handleImportSuccess(response: ProfileImportResponse): void {
-    const displayName = response.bundle.profile.displayName.trim()
-    const title = response.import.title.trim()
-    const successLabel = displayName.length > 0 ? displayName : title
-
-    promptAction.showToast({
-      message: successLabel.length > 0
-        ? `\u5bfc\u5165\u6210\u529f\uff1a${successLabel}`
-        : '\u5bfc\u5165\u6210\u529f'
-    })
-
-    router.pushUrl({
-      url: 'pages/ProfileDetail',
-      params: {
-        profileId: response.bundle.profile.id
-      }
-    })
-  }
-
-  private getAbilityContext(): common.UIAbilityContext {
-    return getContext(this) as common.UIAbilityContext
-  }
-
-  private async selectImportFile(importType: ProfileImportType): Promise<boolean> {
-    try {
-      const documentPicker = new picker.DocumentViewPicker(this.getAbilityContext())
-      const options = new picker.DocumentSelectOptions()
-      options.maxSelectNumber = 1
-      options.fileSuffixFilters = SUPPORTED_IMPORT_SUFFIX_FILTERS
-      const selectedUris = await documentPicker.select(options)
-      if (!selectedUris || selectedUris.length === 0) {
-        return false
-      }
-
-      const selectedUri = selectedUris[0]
-      this.setSelectedImportFile(importType, {
-        uri: selectedUri,
-        fileName: this.extractFileName(selectedUri)
-      })
-      return true
-    } catch (error) {
-      promptAction.showToast({ message: this.formatPickerError(error as Error) })
-      return false
-    }
-  }
-
-  private async prepareUploadFile(file: SelectedImportFile): Promise<UploadFileResult> {
-    const cacheRoot = `${this.getAbilityContext().cacheDir}/${IMPORT_CACHE_DIR_NAME}`
-    if (!fileIo.accessSync(cacheRoot)) {
-      fileIo.mkdirSync(cacheRoot, true)
-    }
-
-    const localPath = `${cacheRoot}/${Date.now()}-${this.sanitizeFileName(file.fileName)}`
-    const sourceCandidates = this.buildUploadSourceCandidates(file.uri)
-
-    for (const sourcePath of sourceCandidates) {
-      try {
-        await fileIo.copyFile(sourcePath, localPath)
-        return {
-          filePath: localPath,
-          cleanupPath: localPath
-        }
-      } catch (_error) {
-      }
-    }
-
-    const directFilePath = sourceCandidates.find((candidate: string) => candidate.startsWith('/'))
-    if (directFilePath) {
-      return {
-        filePath: directFilePath
-      }
-    }
-
-    return {
-      filePath: file.uri
-    }
-  }
-
-  private safeCleanup(path?: string): void {
-    if (!path) {
-      return
-    }
-
-    try {
-      if (fileIo.accessSync(path)) {
-        fileIo.unlinkSync(path)
-      }
-    } catch (_error) {
-    }
-  }
-
-  private async importFromSelectedFile(importType: ProfileImportType): Promise<void> {
-    let selectedFile = this.getSelectedImportFile(importType)
-    if (!selectedFile.uri) {
-      const picked = await this.selectImportFile(importType)
-      if (!picked) {
-        return
-      }
-      selectedFile = this.getSelectedImportFile(importType)
-    }
-
-    if (!selectedFile.uri) {
-      promptAction.showToast({ message: '\u8bf7\u5148\u9009\u62e9\u8981\u5bfc\u5165\u7684\u6587\u4ef6' })
-      return
-    }
-
-    this.isLoading = true
-    let cleanupPath: string | undefined = undefined
-
-    try {
-      promptAction.showToast({ message: '\u5bfc\u5165\u4e2d\uff0c\u53ef\u80fd\u9700\u8981\u8f83\u957f\u65f6\u95f4\uff0c\u8bf7\u8010\u5fc3\u7b49\u5f85' })
-      const prepared = await this.prepareUploadFile(selectedFile)
-      cleanupPath = prepared.cleanupPath
-
-      const response = await PersonaApi.importProfile({
-        importType,
-        filePath: prepared.filePath,
-        fileName: selectedFile.fileName,
-        mimeType: this.guessMimeType(selectedFile.fileName),
-        title: this.buildImportTitle(selectedFile.fileName),
-        displayNameHint: this.getOptionalDisplayNameHint()
-      })
-      this.handleImportSuccess(response)
-    } catch (error) {
-      promptAction.showToast({ message: this.formatImportError(error as Error) })
-    } finally {
-      this.safeCleanup(cleanupPath)
-      this.isLoading = false
-    }
-  }
-
-  private async handlePrimaryAction(): Promise<void> {
-    if (this.getCurrentImportType() === 'manual') {
-      await this.createRole()
-      return
-    }
-
-    await this.importFromSelectedFile(this.getCurrentImportType())
   }
 
   getTabIconColor(index: number, isActive: boolean): string {
@@ -733,6 +526,27 @@ export struct CreateRole {
         })
         .onClick(() => this.uploadWeChat())
 
+      if (this.selectedWeChatRecordId.length > 0) {
+        Row({ space: Spacing.xs }) {
+          Icon({
+            iconType: 'check',
+            iconSize: 14,
+            iconColor: MintColors.mintDark
+          })
+          Text(`已选择：${this.getSelectedWeChatRecordTitle()}`)
+            .fontSize(Typography.size.caption)
+            .fontColor(MintColors.mintDark)
+        }
+        .padding({
+          left: Spacing.sm,
+          right: Spacing.sm,
+          top: 6,
+          bottom: 6
+        })
+        .backgroundColor(MintColors.mintPale)
+        .borderRadius(BorderRadius.pill)
+      }
+
       Row() {
         Text('支持格式：')
           .fontSize(Typography.size.caption)
@@ -876,25 +690,7 @@ export struct CreateRole {
       .width('100%')
       .height('100%')
 
-      Scroll() {
-        Column({ space: Spacing.md }) {
-          this.buildHeroIllustration()
-          this.buildTabSelector()
-          this.buildContentArea()
-          this.buildPrimaryActionButton()
-        }
-        .padding({
-          left: Spacing.page.horizontal,
-          right: Spacing.page.horizontal,
-          top: this.topInsetVp() + 60,
-          bottom: Spacing.page.bottom + 100 + this.safeBottomVp
-        })
-      }
-      .width('100%')
-      .scrollable(ScrollDirection.Vertical)
-      .scrollBar(BarState.Off)
-      .edgeEffect(EdgeEffect.Spring)
-
+      // 返回按钮
       Button() {
         Icon({
           iconType: 'arrowLeft',
@@ -914,12 +710,253 @@ export struct CreateRole {
       })
       .position({ x: Spacing.page.horizontal, y: this.topInsetVp() + 12 })
       .onClick(() => this.goBack())
+
+      Scroll() {
+        Column({ space: Spacing.md }) {
+          this.buildHeroIllustration()
+          this.buildTabSelector()
+          this.buildContentArea()
+          this.buildCreateButton()
+        }
+        .padding({
+          left: Spacing.page.horizontal,
+          right: Spacing.page.horizontal,
+          top: this.topInsetVp() + 60,
+          bottom: Spacing.page.bottom + 100 + this.safeBottomVp
+        })
+      }
+      .width('100%')
+      .scrollable(ScrollDirection.Vertical)
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring)
+
+      if (this.showWeChatPicker) {
+        this.buildMockWeChatPicker()
+      }
+
+      if (this.showAIDialogueModal) {
+        this.buildAIDialogueModal()
+      }
     }
     .width('100%')
     .height('100%')
     .backgroundColor(MintColors.background)
     .opacity(this.contentOpacity)
     .translate({ x: 0, y: this.contentTranslateY })
+  }
+
+  @Builder
+  buildMockWeChatPicker() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(15, 23, 42, 0.36)')
+        .onClick(() => this.closeWeChatPicker())
+
+      Column({ space: Spacing.md }) {
+        Row() {
+          Text('选择微信聊天记录')
+            .fontSize(Typography.size.subtitle)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(MintColors.textPrimary)
+          Blank()
+          Text('模拟数据')
+            .fontSize(Typography.size.xs)
+            .fontColor(MintColors.lavenderDark)
+            .padding({
+              left: Spacing.sm,
+              right: Spacing.sm,
+              top: 4,
+              bottom: 4
+            })
+            .backgroundColor(MintColors.lavenderPale)
+            .borderRadius(BorderRadius.pill)
+        }
+        .width('100%')
+
+        Text('请选择要导入的聊天对象，系统会自动提取人物画像用于创建角色。')
+          .fontSize(Typography.size.caption)
+          .fontColor(MintColors.textSecondary)
+          .width('100%')
+
+        Column({ space: Spacing.sm }) {
+          ForEach(MOCK_WECHAT_RECORDS, (item: MockWeChatRecord) => {
+            Column({ space: 6 }) {
+              Row() {
+                Text(item.contactName)
+                  .fontSize(Typography.size.bodyLg)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(MintColors.textPrimary)
+                Blank()
+                Text(item.title)
+                  .fontSize(Typography.size.xs)
+                  .fontColor(MintColors.textMuted)
+              }
+              .width('100%')
+
+              Text(item.preview)
+                .fontSize(Typography.size.caption)
+                .fontColor(MintColors.textSecondary)
+                .maxLines(2)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+            .width('100%')
+            .padding(Spacing.md)
+            .backgroundColor(MintColors.surface)
+            .borderRadius(BorderRadius.xl)
+            .border({
+              width: 0.5,
+              color: MintColors.border,
+              radius: BorderRadius.xl
+            })
+            .onClick(() => this.selectMockWeChatRecord(item))
+          }, (item: MockWeChatRecord) => item.id)
+        }
+        .width('100%')
+
+        Button('取消')
+          .width('100%')
+          .height(44)
+          .fontSize(Typography.size.body)
+          .fontColor(MintColors.textSecondary)
+          .backgroundColor(MintColors.backgroundSecondary)
+          .borderRadius(BorderRadius.xxl)
+          .onClick(() => this.closeWeChatPicker())
+      }
+      .width('88%')
+      .padding(Spacing.card.large)
+      .backgroundColor(MintColors.cardPrimary)
+      .borderRadius(BorderRadius.xxl)
+      .border({
+        width: 0.5,
+        color: MintColors.border,
+        radius: BorderRadius.xxl
+      })
+      .shadow({
+        radius: 26,
+        color: 'rgba(15, 23, 42, 0.12)',
+        offsetX: 0,
+        offsetY: 10
+      })
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  buildAIDialogueModal() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(15, 23, 42, 0.36)')
+        .onClick(() => this.closeAIDialogueModal())
+
+      Column({ space: Spacing.md }) {
+        Row() {
+          Text('AI 角色访谈')
+            .fontSize(Typography.size.subtitle)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(MintColors.textPrimary)
+          Blank()
+          Button('关闭')
+            .height(30)
+            .fontSize(Typography.size.caption)
+            .fontColor(MintColors.textSecondary)
+            .backgroundColor(MintColors.backgroundSecondary)
+            .borderRadius(BorderRadius.pill)
+            .onClick(() => this.closeAIDialogueModal())
+        }
+        .width('100%')
+
+        Scroll() {
+          Column({ space: Spacing.sm }) {
+            ForEach(this.aiMessages, (item: AIDialogMessage) => {
+              Row() {
+                if (item.sender === 'ai') {
+                  Row() {
+                    Text(item.text)
+                      .fontSize(Typography.size.body)
+                      .fontColor(MintColors.textPrimary)
+                  }
+                  .padding(Spacing.sm)
+                  .backgroundColor(MintColors.background)
+                  .borderRadius(BorderRadius.xl)
+                  Blank()
+                } else {
+                  Blank()
+                  Row() {
+                    Text(item.text)
+                      .fontSize(Typography.size.body)
+                      .fontColor('#FFFFFF')
+                  }
+                  .padding(Spacing.sm)
+                  .backgroundColor(MintColors.mintDark)
+                  .borderRadius(BorderRadius.xl)
+                }
+              }
+              .width('100%')
+            }, (item: AIDialogMessage) => item.id)
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .height(300)
+        .scrollable(ScrollDirection.Vertical)
+        .scrollBar(BarState.Off)
+
+        Row({ space: Spacing.xs }) {
+          TextInput({
+            text: this.aiInputText,
+            placeholder: this.aiConversationDone ? '对话已完成' : '输入你的回答...'
+          })
+            .layoutWeight(1)
+            .height(42)
+            .fontSize(Typography.size.body)
+            .fontColor(MintColors.textPrimary)
+            .placeholderColor(MintColors.textPlaceholder)
+            .backgroundColor(MintColors.surface)
+            .borderRadius(BorderRadius.xxl)
+            .padding({ left: Spacing.md, right: Spacing.md })
+            .onChange((value: string) => {
+              this.aiInputText = value
+            })
+
+          Button(this.aiConversationDone ? '完成' : '发送')
+            .height(42)
+            .fontSize(Typography.size.caption)
+            .fontColor('#FFFFFF')
+            .backgroundColor(this.aiConversationDone ? MintColors.textMuted : MintColors.mint)
+            .borderRadius(BorderRadius.xxl)
+            .onClick(() => {
+              if (this.aiConversationDone) {
+                this.closeAIDialogueModal()
+              } else {
+                this.submitAIDialogueInput()
+              }
+            })
+        }
+        .width('100%')
+      }
+      .width('90%')
+      .padding(Spacing.card.large)
+      .backgroundColor(MintColors.cardPrimary)
+      .borderRadius(BorderRadius.xxl)
+      .border({
+        width: 0.5,
+        color: MintColors.border,
+        radius: BorderRadius.xxl
+      })
+      .shadow({
+        radius: 26,
+        color: 'rgba(15, 23, 42, 0.12)',
+        offsetX: 0,
+        offsetY: 10
+      })
+    }
+    .width('100%')
+    .height('100%')
   }
 
   @Builder
@@ -1094,9 +1131,9 @@ export struct CreateRole {
       if (this.currentTab === 0) {
         this.buildManualForm()
       } else if (this.currentTab === 1) {
-        this.buildImportUploadCard('wechat')
+        this.buildWeChatUploadCard()
       } else {
-        this.buildImportUploadCard('chat')
+        this.buildAIDialogueCard()
       }
     }
   }
@@ -1157,100 +1194,6 @@ export struct CreateRole {
             this.biography = value
           })
       }
-    }
-  }
-
-  @Builder
-  buildImportUploadCard(importType: ProfileImportType) {
-    Column({ space: Spacing.md }) {
-      Column({ space: Spacing.md }) {
-        Stack({ alignContent: Alignment.Center }) {
-          Circle()
-            .width(100)
-            .height(100)
-            .fill(importType === 'wechat' ? MintColors.lavenderPale : MintColors.mintBg)
-
-          Column() {
-            Icon({
-              iconType: importType === 'wechat' ? 'chat' : 'ai',
-              iconSize: 38,
-              iconColor: importType === 'wechat' ? MintColors.lavender : MintColors.mintDark
-            })
-          }
-          .width(56)
-          .height(56)
-          .backgroundColor('rgba(255, 255, 255, 0.68)')
-          .borderRadius(28)
-          .border({
-            width: 0.5,
-            color: 'rgba(255, 255, 255, 0.88)',
-            radius: 28
-          })
-          .shadow({
-            radius: 14,
-            color: importType === 'wechat' ? 'rgba(184, 169, 217, 0.14)' : 'rgba(78, 205, 196, 0.14)',
-            offsetX: 0,
-            offsetY: 4
-          })
-          .alignItems(HorizontalAlign.Center)
-          .justifyContent(FlexAlign.Center)
-        }
-
-        Column({ space: Spacing.sm }) {
-          Text(importType === 'wechat' ? '\u4e0a\u4f20\u5fae\u4fe1\u804a\u5929\u8bb0\u5f55' : 'AI \u5bf9\u8bdd\u8bb0\u5f55\u5bfc\u5165')
-            .fontSize(Typography.size.subtitle)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(MintColors.textPrimary)
-
-          Text(
-            importType === 'wechat'
-              ? '\u7cfb\u7edf\u4f1a\u5206\u6790\u5bfc\u51fa\u7684\u804a\u5929\u8bb0\u5f55\uff0c\u63d0\u53d6\u4eba\u7269\u7279\u5f81\uff0c\u5e2e\u4f60\u66f4\u5feb\u751f\u6210\u89d2\u8272\u6863\u6848\u3002'
-              : '\u4e0a\u4f20\u4f60\u4e0e AI \u7684\u5bf9\u8bdd\u8bb0\u5f55\u540e\uff0c\u7cfb\u7edf\u4f1a\u8865\u5168\u80cc\u666f\u3001\u6027\u683c\u548c\u8868\u8fbe\u65b9\u5f0f\uff0c\u8ba9\u89d2\u8272\u8bbe\u5b9a\u66f4\u81ea\u7136\u3002'
-          )
-            .fontSize(Typography.size.body)
-            .fontColor(MintColors.textSecondary)
-            .textAlign(TextAlign.Center)
-        }
-        .padding({ left: Spacing.lg, right: Spacing.lg })
-      }
-      .width('100%')
-      .padding({ top: Spacing.xl, bottom: Spacing.xl })
-      .backgroundColor(MintColors.cardPrimary)
-      .borderRadius(BorderRadius.xxl)
-      .border({
-        width: 0.5,
-        color: MintColors.border,
-        radius: BorderRadius.xxl
-      })
-
-      Button(this.getSelectButtonLabel(importType))
-        .width('100%')
-        .height(50)
-        .fontSize(Typography.size.bodyLg)
-        .fontColor(importType === 'wechat' ? MintColors.lavender : MintColors.mintDark)
-        .fontWeight(FontWeight.Medium)
-        .backgroundColor(importType === 'wechat' ? MintColors.lavenderBg : MintColors.mintBg)
-        .borderRadius(BorderRadius.xxl)
-        .border({
-          width: 0.5,
-          color: MintColors.border,
-          radius: BorderRadius.xxl
-        })
-        .enabled(!this.isLoading)
-        .onClick(() => {
-          if (importType === 'wechat') {
-            this.uploadWeChat()
-          } else {
-            this.startAIDialogue()
-          }
-        })
-
-      Text(this.getSelectedFileSummary(importType))
-        .width('100%')
-        .fontSize(Typography.size.caption)
-        .fontColor(MintColors.textMuted)
-        .textAlign(TextAlign.Center)
-        .margin({ top: Spacing.xs })
     }
   }
 
@@ -1414,42 +1357,6 @@ export struct CreateRole {
   }
 
   @Builder
-  buildPrimaryActionButton() {
-    Button() {
-      Row() {
-        if (this.isLoading) {
-          LoadingProgress()
-            .width(20)
-            .height(20)
-            .color('#FFFFFF')
-          Text(this.getPrimaryActionLabel())
-            .fontSize(Typography.size.bodyLg)
-            .fontColor('#FFFFFF')
-            .margin({ left: Spacing.sm })
-        } else {
-          Text(this.getPrimaryActionLabel())
-            .fontSize(Typography.size.bodyLg)
-            .fontColor('#FFFFFF')
-        }
-      }
-    }
-    .width('100%')
-    .height(52)
-    .backgroundColor(this.canTriggerPrimaryAction() ? MintColors.mint : MintColors.backgroundSecondary)
-    .borderRadius(BorderRadius.xxl)
-    .shadow({
-      radius: 16,
-      color: 'rgba(78, 205, 196, 0.2)',
-      offsetX: 0,
-      offsetY: 6
-    })
-    .enabled(this.canTriggerPrimaryAction())
-    .onClick(() => {
-      void this.handlePrimaryAction()
-    })
-  }
-
-  @Builder
   buildCreateButton() {
     Button() {
       Row() {
@@ -1471,7 +1378,7 @@ export struct CreateRole {
     }
     .width('100%')
     .height(52)
-    .backgroundColor(this.canTriggerPrimaryAction() ? MintColors.mint : MintColors.backgroundSecondary)
+    .backgroundColor(this.roleName.trim() ? MintColors.mint : MintColors.backgroundSecondary)
     .borderRadius(BorderRadius.xxl)
     .shadow({
       radius: 16,
@@ -1479,9 +1386,7 @@ export struct CreateRole {
       offsetX: 0,
       offsetY: 6
     })
-    .enabled(this.canTriggerPrimaryAction())
-    .onClick(() => {
-      void this.handlePrimaryAction()
-    })
+    .enabled(this.roleName.trim().length > 0 && !this.isLoading)
+    .onClick(() => this.createRole())
   }
 }
