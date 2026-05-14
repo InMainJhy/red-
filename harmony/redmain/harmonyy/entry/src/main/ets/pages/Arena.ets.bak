@@ -1,0 +1,841 @@
+import { common } from '@kit.AbilityKit'
+import { router } from '@kit.ArkUI'
+import {
+  ArenaMessage,
+  ArenaSummary,
+  DebateJudgeScorecard,
+  PersonaSpec,
+  ProfileBundle,
+  RouteParams
+} from '../common/Models'
+import { fetchSafeAreaInsets } from '../common/WindowSafeArea'
+import {
+  buildMeetingRouteParams,
+  parseMeetingSelection,
+  parseRouteStringArray
+} from '../common/MeetingSelection'
+import { PersonaApi } from '../service/PersonaApi'
+import { MintColors } from '../common/styles/MintColors'
+import { Typography } from '../common/styles/Typography'
+import { Spacing } from '../common/styles/Spacing'
+import { BorderRadius } from '../common/styles/BorderRadius'
+
+const FALLBACK_SAFE_TOP_VP: number = 52
+
+interface SeatPosition {
+  x: number
+  y: number
+}
+
+@Entry
+@Component
+struct Arena {
+  @State bundles: ProfileBundle[] = []
+  @State participants: PersonaSpec[] = []
+  @State profileIds: string[] = []
+  @State selectedAgentIds: string[] = []
+  @State topic: string = '现在应该继续坚持，还是及时换一条更稳的路？'
+  @State messages: ArenaMessage[] = []
+  @State summaryTitle: string = ''
+  @State consensus: string = ''
+  @State disagreements: string[] = []
+  @State actionableAdvice: string[] = []
+  @State narrativeHook: string = ''
+  @State winnerDisplayName: string = ''
+  @State verdictRationale: string = ''
+  @State scorecards: DebateJudgeScorecard[] = []
+  @State activeSpeakerAgentId: string = ''
+  @State currentPhaseLabel: string = '待命'
+  @State isLoadingSelection: boolean = false
+  @State isGenerating: boolean = false
+  @State isPlaying: boolean = false
+  @State noticeMessage: string = ''
+  @State safeTopVp: number = 0
+  @State safeBottomVp: number = 0
+
+  private playbackHandle: number = -1
+
+  aboutToAppear(): void {
+    this.loadSafeInsets()
+    void this.loadArenaSelection()
+  }
+
+  aboutToDisappear(): void {
+    this.clearPlayback()
+  }
+
+  loadSafeInsets(): void {
+    try {
+      const ctx = getContext(this) as common.UIAbilityContext
+      fetchSafeAreaInsets(ctx).then((insets) => {
+        this.safeTopVp = insets.topVp
+        this.safeBottomVp = insets.bottomVp
+      })
+    } catch (_error) {
+      // Ignore and use fallback safe area.
+    }
+  }
+
+  topInsetVp(): number {
+    return this.safeTopVp > 0 ? this.safeTopVp : FALLBACK_SAFE_TOP_VP
+  }
+
+  async loadArenaSelection(): Promise<void> {
+    const params = router.getParams() as RouteParams
+    const selection = parseMeetingSelection(params)
+    let profileIds = selection.profileIds
+    let selectedAgentIds = selection.selectedAgentIds
+
+    if (profileIds.length === 0 && params.profileId) {
+      profileIds = [params.profileId]
+      selectedAgentIds = parseRouteStringArray(params.selectedAgentIds)
+    }
+
+    this.profileIds = profileIds
+    this.selectedAgentIds = selectedAgentIds
+    this.isLoadingSelection = true
+    this.noticeMessage = ''
+
+    let loadedBundles: ProfileBundle[] = []
+    for (let index = 0; index < profileIds.length; index++) {
+      try {
+        const bundle = await PersonaApi.getProfileBundle(profileIds[index])
+        loadedBundles = [...loadedBundles, bundle]
+      } catch (_error) {
+        this.noticeMessage = '部分角色未能成功载入，会议阵容已自动跳过它们。'
+      }
+    }
+
+    this.bundles = loadedBundles
+
+    if (selectedAgentIds.length === 0 && loadedBundles.length > 0) {
+      const fallbackAgents = loadedBundles[0].agents.slice(0, 2).map((agent: PersonaSpec) => agent.agentId)
+      this.selectedAgentIds = fallbackAgents
+    }
+
+    this.syncParticipants()
+    this.isLoadingSelection = false
+  }
+
+  syncParticipants(): void {
+    let nextParticipants: PersonaSpec[] = []
+
+    this.selectedAgentIds.forEach((agentId: string) => {
+      const agent = this.findAgentById(agentId)
+      if (agent) {
+        nextParticipants = [...nextParticipants, agent]
+      }
+    })
+
+    this.participants = nextParticipants
+  }
+
+  findAgentById(agentId: string): PersonaSpec | null {
+    for (let bundleIndex = 0; bundleIndex < this.bundles.length; bundleIndex++) {
+      const bundle = this.bundles[bundleIndex]
+      for (let agentIndex = 0; agentIndex < bundle.agents.length; agentIndex++) {
+        const agent = bundle.agents[agentIndex]
+        if (agent.agentId === agentId) {
+          return agent
+        }
+      }
+    }
+    return null
+  }
+
+  findProfileName(personId: string): string {
+    for (let bundleIndex = 0; bundleIndex < this.bundles.length; bundleIndex++) {
+      const bundle = this.bundles[bundleIndex]
+      if (bundle.profile.id === personId) {
+        return bundle.profile.displayName
+      }
+    }
+    return personId
+  }
+
+  clearPlayback(): void {
+    if (this.playbackHandle >= 0) {
+      clearTimeout(this.playbackHandle)
+      this.playbackHandle = -1
+    }
+  }
+
+  resetDebateOutput(): void {
+    this.clearPlayback()
+    this.messages = []
+    this.summaryTitle = ''
+    this.consensus = ''
+    this.disagreements = []
+    this.actionableAdvice = []
+    this.narrativeHook = ''
+    this.winnerDisplayName = ''
+    this.verdictRationale = ''
+    this.scorecards = []
+    this.activeSpeakerAgentId = ''
+    this.currentPhaseLabel = '待命'
+  }
+
+  canStart(): boolean {
+    return this.participants.length >= 2 && !this.isGenerating && !this.isPlaying
+  }
+
+  openComposer(): void {
+    const targetUrl = this.profileIds.length > 0 ? 'pages/MeetingComposer' : 'pages/ExplorePersonas'
+    router.pushUrl({
+      url: targetUrl,
+      params: buildMeetingRouteParams({
+        profileIds: this.profileIds,
+        selectedAgentIds: this.selectedAgentIds
+      })
+    })
+  }
+
+  async startDebate(): Promise<void> {
+    if (this.participants.length < 2) {
+      this.noticeMessage = '请先从角色页加入至少两位角色，并为每位角色选定人格。'
+      return
+    }
+
+    this.noticeMessage = ''
+    this.isGenerating = true
+    this.resetDebateOutput()
+
+    try {
+      const result = await PersonaApi.runArena(this.topic, this.participants, 'debate')
+      this.participants = result.participants
+      this.playMessages(result.messages, result.summary)
+    } catch (_error) {
+      this.noticeMessage = '辩论生成失败，请稍后再试。'
+      this.isGenerating = false
+    }
+  }
+
+  playMessages(messages: ArenaMessage[], summary: ArenaSummary): void {
+    this.isGenerating = false
+    this.isPlaying = true
+    this.currentPhaseLabel = '开场陈词'
+    this.playNextMessage(messages, summary, 0)
+  }
+
+  playNextMessage(messages: ArenaMessage[], summary: ArenaSummary, index: number): void {
+    if (index >= messages.length) {
+      this.isPlaying = false
+      this.activeSpeakerAgentId = ''
+      this.applySummary(summary)
+      this.currentPhaseLabel = '辩论完成'
+      return
+    }
+
+    const nextMessage = messages[index]
+    this.messages = [...this.messages, nextMessage]
+    this.activeSpeakerAgentId = nextMessage.agentId
+    this.currentPhaseLabel = this.phaseLabel(nextMessage.phase, index)
+
+    const delay = 900 + Math.min(nextMessage.content.length * 12, 1100)
+    this.playbackHandle = setTimeout(() => {
+      this.playNextMessage(messages, summary, index + 1)
+    }, delay) as number
+  }
+
+  applySummary(summary: ArenaSummary): void {
+    this.summaryTitle = summary.title
+    this.consensus = summary.consensus
+    this.disagreements = summary.disagreements
+    this.actionableAdvice = summary.actionableAdvice
+    this.narrativeHook = summary.narrativeHook
+    if (summary.debateVerdict) {
+      this.winnerDisplayName = summary.debateVerdict.winnerDisplayName ? summary.debateVerdict.winnerDisplayName : ''
+      this.verdictRationale = summary.debateVerdict.rationale
+      this.scorecards = summary.debateVerdict.scorecards
+    } else {
+      this.winnerDisplayName = ''
+      this.verdictRationale = ''
+      this.scorecards = []
+    }
+  }
+
+  phaseLabel(phase?: string, index?: number): string {
+    const phaseText: Record<string, string> = {
+      'opening': '开场陈词',
+      'reflection': '互相理解',
+      'rebuttal': '正面交锋',
+      'synthesis': '综合回应',
+      'closing': '收束陈词'
+    }
+
+    if (phase && phaseText[phase]) {
+      return phaseText[phase]
+    }
+
+    if (index !== undefined) {
+      if (index < this.participants.length) {
+        return '开场陈词'
+      }
+      if (index < this.participants.length * 2) {
+        return '正面交锋'
+      }
+    }
+
+    return '收束陈词'
+  }
+
+  stanceColor(stance: string): string {
+    const colors: Record<string, string> = {
+      'support': MintColors.stance.support,
+      'oppose': MintColors.stance.oppose,
+      'reflective': MintColors.stance.reflective,
+      'neutral': MintColors.textMuted
+    }
+    return colors[stance] || MintColors.textMuted
+  }
+
+  participantIndex(agentId: string): number {
+    for (let index = 0; index < this.participants.length; index++) {
+      if (this.participants[index].agentId === agentId) {
+        return index
+      }
+    }
+    return 0
+  }
+
+  isRightAligned(agentId: string): boolean {
+    const index = this.participantIndex(agentId)
+    return index === 1
+  }
+
+  latestMessage(): ArenaMessage | null {
+    return this.messages.length > 0 ? this.messages[this.messages.length - 1] : null
+  }
+
+  arenaStatusTitle(): string {
+    if (this.isGenerating) {
+      return '人格 agent 正在就位'
+    }
+    if (this.isPlaying) {
+      return this.currentPhaseLabel
+    }
+    if (this.messages.length > 0) {
+      return '辩论已完成'
+    }
+    return '阵容待命'
+  }
+
+  arenaStatusSubtitle(): string {
+    const latest = this.latestMessage()
+    if (latest) {
+      return latest.content
+    }
+    if (this.participants.length >= 2) {
+      return '每位人格都将由独立 agent 代表发言，你提问后将一轮一轮展开对辩。'
+    }
+    return '先去角色页完成阵容编排，再回来开始圆盘辩论。'
+  }
+
+  seatPosition(index: number, total: number): SeatPosition {
+    if (total <= 2) {
+      return index === 0 ? { x: 0, y: 124 } : { x: 248, y: 124 }
+    }
+
+    if (index === 0) {
+      return { x: 124, y: 0 }
+    }
+    if (index === 1) {
+      return { x: 0, y: 232 }
+    }
+    return { x: 248, y: 232 }
+  }
+
+  seatX(index: number, total: number): number {
+    return this.seatPosition(index, total).x
+  }
+
+  seatY(index: number, total: number): number {
+    return this.seatPosition(index, total).y
+  }
+
+  isActiveSpeaker(agentId: string): boolean {
+    return this.activeSpeakerAgentId === agentId
+  }
+
+  messageProfileName(agentId: string, fallback: string): string {
+    const agent = this.findAgentById(agentId)
+    return agent ? this.findProfileName(agent.personId) : fallback
+  }
+
+  build() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      Column() {
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor(MintColors.background)
+
+        Column()
+          .width(320)
+          .height(220)
+          .borderRadius(160)
+          .backgroundColor('rgba(78, 205, 196, 0.08)')
+          .blur(95)
+          .position({ x: -110, y: -70 })
+
+        Column()
+          .width(260)
+          .height(180)
+          .borderRadius(130)
+          .backgroundColor('rgba(184, 169, 217, 0.09)')
+          .blur(80)
+          .position({ right: -80, y: -20 })
+      }
+      .width('100%')
+      .height('100%')
+
+      Button() {
+        Text('<')
+          .fontSize(20)
+          .fontColor(MintColors.mintDark)
+      }
+      .width(38)
+      .height(38)
+      .backgroundColor(MintColors.surfaceGlass)
+      .borderRadius(19)
+      .shadow({
+        radius: 10,
+        color: 'rgba(78, 205, 196, 0.10)',
+        offsetX: 0,
+        offsetY: 3
+      })
+      .position({ x: Spacing.page.horizontal, y: this.topInsetVp() + 12 })
+      .onClick(() => {
+        router.back()
+      })
+
+      Scroll() {
+        Column({ space: Spacing.lg }) {
+          Column({ space: Spacing.md }) {
+            Text('圆盘辩论场')
+              .fontSize(Typography.size.hero)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(MintColors.textPrimary)
+
+            Text('角色各占一方，你抛出问题后，每个人格 agent 会按轮次接力发言。')
+              .fontSize(Typography.size.body)
+              .fontColor(MintColors.textSecondary)
+              .lineHeight(Typography.lineHeight.relaxed)
+
+            if (this.participants.length > 0) {
+              Flex({ wrap: FlexWrap.Wrap }) {
+                ForEach(this.participants, (participant: PersonaSpec) => {
+                  Text(`${this.findProfileName(participant.personId)} · ${participant.stageLabel}`)
+                    .fontSize(Typography.size.xs)
+                    .fontColor(MintColors.textSecondary)
+                    .padding({
+                      left: Spacing.sm,
+                      right: Spacing.sm,
+                      top: 4,
+                      bottom: 4
+                    })
+                    .backgroundColor(MintColors.surfaceGlass)
+                    .borderRadius(BorderRadius.chip)
+                    .margin({ right: Spacing.xs, bottom: Spacing.xs })
+                }, (participant: PersonaSpec) => participant.agentId)
+              }
+              .width('100%')
+            }
+
+            TextArea({
+              text: this.topic,
+              placeholder: '把你真正想讨论的问题抛进圆盘，比如：我该继续坚持，还是承认这条路已经不再适合我？'
+            })
+              .width('100%')
+              .height(100)
+              .fontSize(Typography.size.body)
+              .fontColor(MintColors.textPrimary)
+              .placeholderColor(MintColors.textPlaceholder)
+              .backgroundColor(MintColors.backgroundSecondary)
+              .borderRadius(BorderRadius.xxl)
+              .padding(Spacing.lg)
+              .onChange((value: string) => {
+                this.topic = value
+              })
+
+            Row({ space: Spacing.sm }) {
+              Button(this.profileIds.length > 0 ? '调整阵容' : '去角色页编排')
+                .height(42)
+                .fontSize(Typography.size.body)
+                .fontColor(MintColors.mintDark)
+                .backgroundColor(MintColors.surfaceGlass)
+                .borderRadius(BorderRadius.xxl)
+                .border({
+                  width: 0.5,
+                  color: MintColors.border,
+                  radius: BorderRadius.xxl
+                })
+                .onClick(() => {
+                  this.openComposer()
+                })
+
+              Button(this.canStart() ? '开始辩论' : '至少准备两位辩手')
+                .layoutWeight(1)
+                .height(42)
+                .fontSize(Typography.size.body)
+                .fontColor('#FFFFFF')
+                .backgroundColor(this.canStart() ? MintColors.mint : MintColors.textMuted)
+                .borderRadius(BorderRadius.xxl)
+                .enabled(this.canStart())
+                .onClick(() => {
+                  void this.startDebate()
+                })
+            }
+            .width('100%')
+
+            if (this.noticeMessage.length > 0) {
+              Text(this.noticeMessage)
+                .fontSize(Typography.size.caption)
+                .fontColor(MintColors.error)
+                .padding(Spacing.md)
+                .backgroundColor('rgba(224, 120, 128, 0.08)')
+                .borderRadius(BorderRadius.lg)
+            }
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+          .padding({
+            left: Spacing.lg,
+            right: Spacing.lg,
+            top: this.topInsetVp() + 60,
+            bottom: Spacing.lg
+          })
+          .backgroundColor(MintColors.cardPrimary)
+          .borderRadius(BorderRadius.xxl3)
+          .border({
+            width: 0.5,
+            color: MintColors.border,
+            radius: BorderRadius.xxl3
+          })
+          .shadow({
+            radius: 20,
+            color: 'rgba(78, 205, 196, 0.08)',
+            offsetX: 0,
+            offsetY: 6
+          })
+
+          Column({ space: Spacing.lg }) {
+            Text('实时辩论过程')
+              .fontSize(Typography.size.bodyLg)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(MintColors.textPrimary)
+
+            this.buildArenaDisc()
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+          .padding(Spacing.lg)
+          .backgroundColor(MintColors.cardPrimary)
+          .borderRadius(BorderRadius.xxl3)
+          .border({
+            width: 0.5,
+            color: MintColors.border,
+            radius: BorderRadius.xxl3
+          })
+
+          Column({ space: Spacing.md }) {
+            Text('发言记录')
+              .fontSize(Typography.size.bodyLg)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(MintColors.textPrimary)
+
+            if (this.isLoadingSelection) {
+              Text('正在恢复会议阵容...')
+                .fontSize(Typography.size.body)
+                .fontColor(MintColors.textMuted)
+            } else if (this.messages.length === 0) {
+              Column({ space: Spacing.sm }) {
+                Text('辩论还没有开始')
+                  .fontSize(Typography.size.bodyLg)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(MintColors.textPrimary)
+
+                Text('编排好阵容后点击“开始辩论”，这里会按时间顺序实时铺开发言。')
+                  .fontSize(Typography.size.caption)
+                  .fontColor(MintColors.textMuted)
+                  .lineHeight(Typography.lineHeight.relaxed)
+              }
+              .width('100%')
+              .padding(Spacing.xl)
+              .backgroundColor(MintColors.surfaceGlass)
+              .borderRadius(BorderRadius.xxl)
+            } else {
+              ForEach(this.messages, (message: ArenaMessage, index: number) => {
+                this.buildMessageCard(message, index)
+              }, (message: ArenaMessage) => message.id)
+            }
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+
+          if (this.summaryTitle.length > 0) {
+            Column({ space: Spacing.md }) {
+              Text(this.summaryTitle)
+                .fontSize(Typography.size.xl)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(MintColors.textPrimary)
+
+              Text(this.consensus)
+                .fontSize(Typography.size.body)
+                .fontColor(MintColors.textSecondary)
+                .lineHeight(Typography.lineHeight.relaxed)
+
+              if (this.winnerDisplayName.length > 0) {
+                Column({ space: Spacing.xs }) {
+                  Text('暂时领先的人格')
+                    .fontSize(Typography.size.xs)
+                    .fontColor(MintColors.mintDark)
+                  Text(this.winnerDisplayName)
+                    .fontSize(Typography.size.bodyLg)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(MintColors.textPrimary)
+                  Text(this.verdictRationale)
+                    .fontSize(Typography.size.caption)
+                    .fontColor(MintColors.textMuted)
+                    .lineHeight(Typography.lineHeight.relaxed)
+                }
+                .width('100%')
+                .padding(Spacing.md)
+                .backgroundColor(MintColors.mintBg)
+                .borderRadius(BorderRadius.lg)
+              }
+
+              if (this.disagreements.length > 0) {
+                Column({ space: Spacing.xs }) {
+                  Text('主要分歧')
+                    .fontSize(Typography.size.caption)
+                    .fontColor(MintColors.error)
+
+                  ForEach(this.disagreements, (item: string) => {
+                    Text(`• ${item}`)
+                      .fontSize(Typography.size.body)
+                      .fontColor(MintColors.textPrimary)
+                      .lineHeight(Typography.lineHeight.relaxed)
+                  }, (item: string) => item)
+                }
+                .width('100%')
+              }
+
+              if (this.actionableAdvice.length > 0) {
+                Column({ space: Spacing.xs }) {
+                  Text('行动建议')
+                    .fontSize(Typography.size.caption)
+                    .fontColor(MintColors.mintDark)
+
+                  ForEach(this.actionableAdvice, (item: string) => {
+                    Text(`• ${item}`)
+                      .fontSize(Typography.size.body)
+                      .fontColor(MintColors.textPrimary)
+                      .lineHeight(Typography.lineHeight.relaxed)
+                  }, (item: string) => item)
+                }
+                .width('100%')
+              }
+
+              if (this.scorecards.length > 0) {
+                Column({ space: Spacing.sm }) {
+                  Text('裁判视角')
+                    .fontSize(Typography.size.caption)
+                    .fontColor(MintColors.lavenderDark)
+
+                  ForEach(this.scorecards, (scorecard: DebateJudgeScorecard) => {
+                    Column({ space: 4 }) {
+                      Text(scorecard.displayName)
+                        .fontSize(Typography.size.body)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor(MintColors.textPrimary)
+
+                      Text(`论点 ${scorecard.argumentScore} / 证据 ${scorecard.evidenceScore} / 回应 ${scorecard.responsivenessScore}`)
+                        .fontSize(Typography.size.caption)
+                        .fontColor(MintColors.textMuted)
+
+                      Text(scorecard.comments)
+                        .fontSize(Typography.size.caption)
+                        .fontColor(MintColors.textSecondary)
+                        .lineHeight(Typography.lineHeight.relaxed)
+                    }
+                    .width('100%')
+                    .padding(Spacing.md)
+                    .backgroundColor(MintColors.lavenderPale)
+                    .borderRadius(BorderRadius.lg)
+                  }, (scorecard: DebateJudgeScorecard) => scorecard.agentId)
+                }
+                .width('100%')
+              }
+
+              if (this.narrativeHook.length > 0) {
+                Text(`“${this.narrativeHook}”`)
+                  .fontSize(Typography.size.body)
+                  .fontColor(MintColors.lavenderDark)
+                  .fontStyle(FontStyle.Italic)
+                  .lineHeight(Typography.lineHeight.relaxed)
+                  .padding(Spacing.md)
+                  .backgroundColor(MintColors.lavenderPale)
+                  .borderRadius(BorderRadius.lg)
+              }
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+            .padding(Spacing.lg)
+            .backgroundColor(MintColors.cardPrimary)
+            .borderRadius(BorderRadius.xxl3)
+            .border({
+              width: 0.5,
+              color: MintColors.border,
+              radius: BorderRadius.xxl3
+            })
+          }
+        }
+        .padding({
+          left: Spacing.page.horizontal,
+          right: Spacing.page.horizontal,
+          top: 0,
+          bottom: this.safeBottomVp + Spacing.xl
+        })
+      }
+      .width('100%')
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring)
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(MintColors.background)
+  }
+
+  @Builder
+  buildArenaDisc() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width(340)
+        .height(340)
+        .borderRadius(170)
+        .backgroundColor('rgba(78, 205, 196, 0.06)')
+
+      Column()
+        .width(214)
+        .height(214)
+        .borderRadius(107)
+        .border({
+          width: 1,
+          color: 'rgba(78, 205, 196, 0.20)',
+          radius: 107
+        })
+        .backgroundColor('rgba(255, 255, 255, 0.72)')
+
+      Column()
+        .width(154)
+        .height(154)
+        .borderRadius(77)
+        .linearGradient({
+          direction: GradientDirection.Bottom,
+          colors: [
+            ['rgba(78, 205, 196, 0.16)', 0],
+            ['rgba(184, 169, 217, 0.18)', 1]
+          ]
+        })
+
+      Column()
+        .width(112)
+        .height(112)
+        .borderRadius(56)
+        .backgroundColor('rgba(255, 255, 255, 0.34)')
+        .border({
+          width: 0.5,
+          color: 'rgba(184, 169, 217, 0.10)',
+          radius: 56
+        })
+
+      ForEach(this.participants, (participant: PersonaSpec, index: number) => {
+        this.buildSeat(participant, index, this.participants.length)
+      }, (participant: PersonaSpec) => participant.agentId)
+    }
+    .width('100%')
+    .height(360)
+  }
+
+  @Builder
+  buildSeat(participant: PersonaSpec, index: number, total: number) {
+    Column() {
+      Stack({ alignContent: Alignment.Center }) {
+        Column()
+          .width(58)
+          .height(58)
+          .borderRadius(29)
+          .backgroundColor(this.isActiveSpeaker(participant.agentId) ? MintColors.mint : MintColors.surfaceGlass)
+          .border({
+            width: 1,
+            color: this.isActiveSpeaker(participant.agentId) ? MintColors.mintDark : MintColors.border,
+            radius: 29
+          })
+
+        Text(this.findProfileName(participant.personId).charAt(0))
+          .fontSize(Typography.size.subtitle)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('rgba(0, 0, 0, 0)')
+      }
+    }
+    .width(92)
+    .alignItems(HorizontalAlign.Center)
+    .position({ x: this.seatX(index, total), y: this.seatY(index, total) })
+  }
+
+  @Builder
+  buildMessageCard(message: ArenaMessage, index: number) {
+    Column() {
+      Column({ space: Spacing.sm }) {
+        Row({ space: Spacing.xs }) {
+          Text(this.phaseLabel(message.phase, index))
+            .fontSize(Typography.size.xs)
+            .fontColor(this.stanceColor(message.stance))
+            .padding({
+              left: Spacing.sm,
+              right: Spacing.sm,
+              top: 3,
+              bottom: 3
+            })
+            .backgroundColor(`${this.stanceColor(message.stance)}20`)
+            .borderRadius(BorderRadius.pill)
+
+          Text(`${this.messageProfileName(message.agentId, message.displayName)} · ${message.stageLabel}`)
+            .fontSize(Typography.size.xs)
+            .fontColor(MintColors.textMuted)
+        }
+        .width('100%')
+
+        if (message.replyToDisplayName && message.replyToDisplayName.length > 0) {
+          Text(`回应：${message.replyToDisplayName}`)
+            .fontSize(Typography.size.xs)
+            .fontColor(MintColors.lavenderDark)
+        }
+
+        Text(message.content)
+          .fontSize(Typography.size.body)
+          .fontColor(MintColors.textPrimary)
+          .lineHeight(Typography.lineHeight.relaxed)
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .padding(Spacing.md)
+      .backgroundColor(MintColors.cardPrimary)
+      .borderRadius(BorderRadius.xxl)
+      .border({
+        width: 0.5,
+        color: this.activeSpeakerAgentId === message.agentId ? this.stanceColor(message.stance) : MintColors.border,
+        radius: BorderRadius.xxl
+      })
+      .shadow({
+        radius: this.activeSpeakerAgentId === message.agentId ? 16 : 8,
+        color: this.activeSpeakerAgentId === message.agentId ? 'rgba(78, 205, 196, 0.10)' : 'rgba(15, 23, 42, 0.04)',
+        offsetX: 0,
+        offsetY: 4
+      })
+    }
+    .width('100%')
+    .alignItems(this.isRightAligned(message.agentId) ? HorizontalAlign.End : HorizontalAlign.Start)
+  }
+}

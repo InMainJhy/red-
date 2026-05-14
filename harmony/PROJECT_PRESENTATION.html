@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时序人格 - 与不同阶段的自己对话</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --mint: #5ECBA1;
+            --mint-dark: #4AA885;
+            --mint-light: #8FE6C9;
+            --mint-pale: #E8F8F2;
+            --lavender: #A78BFA;
+            --lavender-light: #C4B5FD;
+            --lavender-pale: #F3E8FF;
+            --bg: #FAFBFC;
+            --bg-secondary: #F5F7F9;
+            --surface: #FFFFFF;
+            --text-primary: #1A1D26;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --border: #E5E7EB;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 60px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--mint), var(--lavender));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--mint);
+        }
+
+        .nav-cta {
+            background: linear-gradient(135deg, var(--mint), var(--mint-dark));
+            color: white;
+            padding: 12px 28px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(94, 203, 161, 0.3);
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(94, 203, 161, 0.4);
+        }
+
+        /* Hero区域 */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 20px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 30% 20%, rgba(94, 203, 161, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(167, 139, 250, 0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(5deg); }
+            66% { transform: translate(-20px, 20px) rotate(-5deg); }
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--mint-pale);
+            color: var(--mint-dark);
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 32px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--mint);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .hero h1 {
+            font-size: clamp(48px, 8vw, 80px);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, var(--mint) 0%, var(--lavender) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 48px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--mint), var(--mint-dark));
+            color: white;
+            padding: 16px 36px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(94, 203, 161, 0.4);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(94, 203, 161, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            padding: 16px 36px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--mint);
+            color: var(--mint);
+        }
+
+        /* 核心概念区域 */
+        .concept {
+            padding: 120px 60px;
+            background: var(--surface);
+        }
+
+        .section-label {
+            text-align: center;
+            color: var(--mint);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .section-desc {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 18px;
+            max-width: 700px;
+            margin: 0 auto 60px;
+        }
+
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .concept-card {
+            background: var(--bg);
+            border-radius: 24px;
+            padding: 40px 32px;
+            text-align: center;
+            transition: all 0.4s;
+            border: 1px solid transparent;
+        }
+
+        .concept-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            border-color: var(--mint-light);
+        }
+
+        .concept-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+        }
+
+        .concept-card:nth-child(1) .concept-icon {
+            background: linear-gradient(135deg, rgba(94, 203, 161, 0.2), rgba(94, 203, 161, 0.1));
+        }
+
+        .concept-card:nth-child(2) .concept-icon {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(167, 139, 250, 0.1));
+        }
+
+        .concept-card:nth-child(3) .concept-icon {
+            background: linear-gradient(135deg, rgba(94, 203, 161, 0.15), rgba(167, 139, 250, 0.15));
+        }
+
+        .concept-card h3 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .concept-card p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        /* 核心流程区域 */
+        .flow {
+            padding: 120px 60px;
+            background: var(--bg);
+        }
+
+        .flow-timeline {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .flow-timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--mint), var(--lavender));
+            border-radius: 2px;
+            transform: translateX(-50%);
+        }
+
+        .flow-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        .flow-item:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+
+        .flow-content {
+            width: 45%;
+            background: var(--surface);
+            padding: 32px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            position: relative;
+            z-index: 1;
+        }
+
+        .flow-item:nth-child(odd) .flow-content {
+            margin-right: auto;
+        }
+
+        .flow-item:nth-child(even) .flow-content {
+            margin-left: auto;
+        }
+
+        .flow-number {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--mint), var(--lavender));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            box-shadow: 0 4px 15px rgba(94, 203, 161, 0.4);
+        }
+
+        .flow-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--mint-dark);
+        }
+
+        .flow-content p {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        /* 功能特色区域 */
+        .features {
+            padding: 120px 60px;
+            background: var(--surface);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: var(--bg);
+            border-radius: 24px;
+            padding: 40px;
+            display: flex;
+            gap: 24px;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .feature-card:hover {
+            border-color: var(--mint-light);
+            box-shadow: 0 10px 40px rgba(94, 203, 161, 0.1);
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .feature-card:nth-child(1) .feature-icon { background: rgba(94, 203, 161, 0.15); }
+        .feature-card:nth-child(2) .feature-icon { background: rgba(167, 139, 250, 0.15); }
+        .feature-card:nth-child(3) .feature-icon { background: rgba(94, 203, 161, 0.1); }
+        .feature-card:nth-child(4) .feature-icon { background: rgba(167, 139, 250, 0.1); }
+
+        .feature-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .feature-content p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .feature-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .feature-tag {
+            background: var(--mint-pale);
+            color: var(--mint-dark);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* 人物卡片展示 */
+        .personas {
+            padding: 120px 60px;
+            background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
+        }
+
+        .personas-showcase {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .persona-card {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 32px;
+            width: 320px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            transition: all 0.4s;
+            border: 1px solid var(--border);
+        }
+
+        .persona-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(94, 203, 161, 0.15);
+            border-color: var(--mint-light);
+        }
+
+        .persona-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .persona-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--mint-light), var(--lavender-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .persona-info h4 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .persona-info span {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .persona-stages {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .persona-stage {
+            background: var(--bg);
+            padding: 12px 16px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stage-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--mint);
+        }
+
+        .stage-dot.lavender {
+            background: var(--lavender);
+        }
+
+        .stage-dot.mint-lavender {
+            background: linear-gradient(135deg, var(--mint), var(--lavender));
+        }
+
+        .stage-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .stage-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+
+        .persona-cta {
+            width: 100%;
+            background: var(--mint-pale);
+            color: var(--mint-dark);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .persona-cta:hover {
+            background: var(--mint);
+            color: white;
+        }
+
+        /* 会议效果展示 */
+        .meeting-demo {
+            padding: 120px 60px;
+            background: var(--surface);
+        }
+
+        .meeting-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--bg);
+            border-radius: 32px;
+            overflow: hidden;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.1);
+        }
+
+        .meeting-header {
+            background: linear-gradient(135deg, var(--mint), var(--lavender));
+            padding: 32px 40px;
+            color: white;
+        }
+
+        .meeting-header h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .meeting-header p {
+            opacity: 0.9;
+            font-size: 15px;
+        }
+
+        .meeting-participants {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .participant {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .participant-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .participant-info {
+            font-size: 13px;
+        }
+
+        .participant-info strong {
+            display: block;
+            font-weight: 600;
+        }
+
+        .participant-info span {
+            opacity: 0.8;
+            font-size: 11px;
+        }
+
+        .meeting-messages {
+            padding: 32px 40px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .message-avatar.mint { background: var(--mint-pale); }
+        .message-avatar.lavender { background: var(--lavender-pale); }
+
+        .message-bubble {
+            background: var(--surface);
+            padding: 16px 20px;
+            border-radius: 16px;
+            flex: 1;
+            border: 1px solid var(--border);
+        }
+
+        .message-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .message-name.mint { color: var(--mint-dark); }
+        .message-name.lavender { color: var(--lavender); }
+
+        .message-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .meeting-result {
+            background: var(--mint-pale);
+            padding: 32px 40px;
+            border-top: 1px solid rgba(94, 203, 161, 0.2);
+        }
+
+        .result-title {
+            color: var(--mint-dark);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-content {
+            background: var(--surface);
+            padding: 20px 24px;
+            border-radius: 16px;
+            font-size: 15px;
+            color: var(--text-primary);
+            line-height: 1.8;
+        }
+
+        /* 技术特性 */
+        .tech {
+            padding: 120px 60px;
+            background: var(--bg);
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .tech-card {
+            background: var(--surface);
+            padding: 32px 24px;
+            border-radius: 20px;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .tech-card:hover {
+            border-color: var(--mint-light);
+            transform: translateY(-5px);
+        }
+
+        .tech-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 16px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--mint-pale), var(--lavender-pale));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .tech-card h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .tech-card p {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        /* 页脚 */
+        .footer {
+            background: var(--text-primary);
+            color: white;
+            padding: 80px 60px 40px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 60px;
+        }
+
+        .footer-brand {
+            max-width: 400px;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .footer-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--mint), var(--lavender));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .footer-brand p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .footer-links h5 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .footer-links a {
+            display: block;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--mint);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .navbar { padding: 0 30px; }
+            .nav-links { display: none; }
+            .concept-grid { grid-template-columns: 1fr; max-width: 500px; }
+            .flow-timeline::before { left: 24px; }
+            .flow-item, .flow-item:nth-child(even) { flex-direction: column; align-items: flex-start; padding-left: 60px; }
+            .flow-content, .flow-item:nth-child(odd) .flow-content, .flow-item:nth-child(even) .flow-content { width: 100%; margin: 0; }
+            .flow-number { left: 24px; transform: translateX(-50%); }
+            .features-grid { grid-template-columns: 1fr; max-width: 600px; margin: 0 auto; }
+            .tech-grid { grid-template-columns: repeat(2, 1fr); }
+            .footer-content { flex-direction: column; gap: 40px; }
+        }
+
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 36px; }
+            .hero-subtitle { font-size: 16px; }
+            .hero-actions { flex-direction: column; }
+            .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
+            .personas-showcase { flex-direction: column; align-items: center; }
+            .persona-card { width: 100%; max-width: 360px; }
+            .tech-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+            .concept, .flow, .features, .personas, .meeting-demo, .tech { padding: 80px 20px; }
+            .meeting-container { border-radius: 20px; }
+            .meeting-header, .meeting-messages, .meeting-result { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">⏳</div>
+            <span>时序人格</span>
+        </div>
+        <div class="nav-links">
+            <a href="#concept">核心概念</a>
+            <a href="#flow">使用流程</a>
+            <a href="#features">功能特色</a>
+            <a href="#personas">角色库</a>
+        </div>
+        <a href="#" class="nav-cta">立即体验</a>
+    </nav>
+
+    <!-- Hero区域 -->
+    <section class="hero">
+        <div class="hero-badge">
+            2026 创新应用 · 鸿蒙原生开发
+        </div>
+        <h1>
+            与不同阶段的<br>
+            <span class="gradient">自己对话</span>
+        </h1>
+        <p class="hero-subtitle">
+            基于HarmonyOS的时序人格应用，让「过去的自己」与「未来的自己」<br>
+            同屏讨论，帮助你做出更明智的人生决策
+        </p>
+        <div class="hero-actions">
+            <a href="#" class="btn-primary">
+                开始创建角色 →
+            </a>
+            <a href="#" class="btn-secondary">
+                观看演示
+            </a>
+        </div>
+    </section>
+
+    <!-- 核心概念 -->
+    <section class="concept" id="concept">
+        <p class="section-label">Core Concept</p>
+        <h2 class="section-title">什么是「时序人格」？</h2>
+        <p class="section-desc">
+            每个人在不同人生阶段都有不同的认知、价值观和决策方式。时序人格将人物经历拆解为多个阶段，
+            让你可以选择任意阶段的人格参与会议，获得多元视角的讨论结果。
+        </p>
+
+        <div class="concept-grid">
+            <div class="concept-card">
+                <div class="concept-icon">🧠</div>
+                <h3>AI 驱动的智能解析</h3>
+                <p>基于大语言模型分析人物传记，自动拆解出关键人生阶段和每个阶段的人格特征、思维模式、价值观体系。</p>
+            </div>
+            <div class="concept-card">
+                <div class="concept-icon">⏰</div>
+                <h3>多阶段人格切片</h3>
+                <p>将一个人物的人生经历分解为多个「时序人格切片」——25岁的理想主义、35岁的务实主义、45岁的沉稳智慧。</p>
+            </div>
+            <div class="concept-card">
+                <div class="concept-icon">🎭</div>
+                <h3>跨时空会议辩论</h3>
+                <p>选择2-3个不同阶段的人格同时参与会议，让不同年龄、不同认知的人针对同一话题展开真实讨论。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心流程 -->
+    <section class="flow" id="flow">
+        <p class="section-label">How It Works</p>
+        <h2 class="section-title">如何开始你的时间之旅</h2>
+        <p class="section-desc">简单四步，开启与不同阶段自己的深度对话</p>
+
+        <div class="flow-timeline">
+            <div class="flow-item">
+                <div class="flow-content">
+                    <h3>① 创建或选择人物</h3>
+                    <p>从预设人物库中选择，或通过手动输入、AI对话、微信聊天记录导入等方式创建自定义人物。</p>
+                </div>
+                <div class="flow-number">1</div>
+            </div>
+
+            <div class="flow-item">
+                <div class="flow-content">
+                    <h3>② 查看人生时间线</h3>
+                    <p>系统自动解析人物经历，生成可视化时间线，每个节点对应一个人生阶段及其人格特征。</p>
+                </div>
+                <div class="flow-number">2</div>
+            </div>
+
+            <div class="flow-item">
+                <div class="flow-content">
+                    <h3>③ 选择参会人格</h3>
+                    <p>从时间线上选择2-3个阶段人格参与会议。不同阶段拥有不同的立场、观点和思维方式。</p>
+                </div>
+                <div class="flow-number">3</div>
+            </div>
+
+            <div class="flow-item">
+                <div class="flow-content">
+                    <h3>④ 开启会议 & 获得洞察</h3>
+                    <p>AI模拟多角色会议讨论，输出共识、分歧点和行动建议。会议纪要自动沉淀，支持分享和导出。</p>
+                </div>
+                <div class="flow-number">4</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能特色 -->
+    <section class="features" id="features">
+        <p class="section-label">Features</p>
+        <h2 class="section-title">核心功能全解析</h2>
+        <p class="section-desc">从人物创建到会议讨论，每一步都精心设计</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <div class="feature-content">
+                    <h3>AI 对话创建角色</h3>
+                    <p>通过自然语言对话，AI引导你逐步描述人物特征，自动整理生成完整的角色档案。随时可结束，灵活性极高。</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">智能引导</span>
+                        <span class="feature-tag">关键词提取</span>
+                        <span class="feature-tag">灵活对话</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <div class="feature-content">
+                    <h3>可视化人生时间线</h3>
+                    <p>将人物传记解析为直观的时间线展示，每个节点可展开查看该阶段的详细人格特征、关键事件和价值观。</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">时间轴</span>
+                        <span class="feature-tag">阶段详情</span>
+                        <span class="feature-tag">一键展开</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">💬</div>
+                <div class="feature-content">
+                    <h3>多角色会议系统</h3>
+                    <p>支持2-3个阶段人格同时参与讨论，AI模拟真实的会议辩论过程，输出包括共识、分歧和行动建议的完整报告。</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">多角色</span>
+                        <span class="feature-tag">实时讨论</span>
+                        <span class="feature-tag">AI生成</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📝</div>
+                <div class="feature-content">
+                    <h3>智能纪要沉淀</h3>
+                    <p>会议结束后自动生成精美纪要卡片，支持多种模板样式。一键分享、导出图片或文案，永久保存你的思考成果。</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">多模板</span>
+                        <span class="feature-tag">分享导出</span>
+                        <span class="feature-tag">收藏管理</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 人物卡片展示 -->
+    <section class="personas" id="personas">
+        <p class="section-label">Personas</p>
+        <h2 class="section-title">预设人物库</h2>
+        <p class="section-desc">从历史名人到商业巨擘，预置丰富的角色供你体验</p>
+
+        <div class="personas-showcase">
+            <div class="persona-card">
+                <div class="persona-header">
+                    <div class="persona-avatar">👨‍💼</div>
+                    <div class="persona-info">
+                        <h4>马云</h4>
+                        <span>企业家 · 商业领袖</span>
+                    </div>
+                </div>
+                <div class="persona-stages">
+                    <div class="persona-stage">
+                        <div class="stage-dot"></div>
+                        <span class="stage-text">青年创业期</span>
+                        <span class="stage-time">1990s</span>
+                    </div>
+                    <div class="persona-stage">
+                        <div class="stage-dot lavender"></div>
+                        <span class="stage-text">阿里崛起期</span>
+                        <span class="stage-time">2000s</span>
+                    </div>
+                    <div class="persona-stage">
+                        <div class="stage-dot mint-lavender"></div>
+                        <span class="stage-text">功成身退期</span>
+                        <span class="stage-time">2010s</span>
+                    </div>
+                </div>
+                <a href="#" class="persona-cta">开始对话 →</a>
+            </div>
+
+            <div class="persona-card">
+                <div class="persona-header">
+                    <div class="persona-avatar">📱</div>
+                    <div class="persona-info">
+                        <h4>乔布斯</h4>
+                        <span>创新者 · 科技先驱</span>
+                    </div>
+                </div>
+                <div class="persona-stages">
+                    <div class="persona-stage">
+                        <div class="stage-dot"></div>
+                        <span class="stage-text">车库创业期</span>
+                        <span class="stage-time">1970s</span>
+                    </div>
+                    <div class="persona-stage">
+                        <div class="stage-dot lavender"></div>
+                        <span class="stage-text">被驱逐岁月</span>
+                        <span class="stage-time">1985-1997</span>
+                    </div>
+                    <div class="persona-stage">
+                        <div class="stage-dot mint-lavender"></div>
+                        <span class="stage-text">巅峰回归期</span>
+                        <span class="stage-time">1997-2011</span>
+                    </div>
+                </div>
+                <a href="#" class="persona-cta">开始对话 →</a>
+            </div>
+
+            <div class="persona-card">
+                <div class="persona-header">
+                    <div class="persona-avatar">🎓</div>
+                    <div class="persona-info">
+                        <h4>孔子</h4>
+                        <span>思想家 · 教育家</span>
+                    </div>
+                </div>
+                <div class="persona-stages">
+                    <div class="persona-stage">
+                        <div class="stage-dot"></div>
+                        <span class="stage-text">年少求学期</span>
+                        <span class="stage-time">15-30岁</span>
+                    </div>
+                    <div class="persona-stage">
+                        <div class="stage-dot lavender"></div>
+                        <span class="stage-text">周游列国</span>
+                        <span class="stage-time">30-55岁</span>
+                    </div>
+                    <div class="persona-stage">
+                        <div class="stage-dot mint-lavender"></div>
+                        <span class="stage-text">著书立说</span>
+                        <span class="stage-time">55-73岁</span>
+                    </div>
+                </div>
+                <a href="#" class="persona-cta">开始对话 →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 会议效果展示 -->
+    <section class="meeting-demo">
+        <p class="section-label">Demo</p>
+        <h2 class="section-title">会议效果演示</h2>
+        <p class="section-desc">选择不同阶段人格，观看他们如何讨论同一话题</p>
+
+        <div class="meeting-container">
+            <div class="meeting-header">
+                <h3>议题：30岁应该追求稳定还是冒险？</h3>
+                <p>选择马云的不同人生阶段进行跨时空讨论</p>
+                <div class="meeting-participants">
+                    <div class="participant">
+                        <div class="participant-avatar">🌱</div>
+                        <div class="participant-info">
+                            <strong>马云 · 青年期</strong>
+                            <span>理想主义 · 勇于冒险</span>
+                        </div>
+                    </div>
+                    <div class="participant">
+                        <div class="participant-avatar">💼</div>
+                        <div class="participant-info">
+                            <strong>马云 · 巅峰期</strong>
+                            <span>务实主义 · 战略思维</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="meeting-messages">
+                <div class="message">
+                    <div class="message-avatar mint">🌱</div>
+                    <div class="message-bubble">
+                        <div class="message-name mint">马云 · 青年期</div>
+                        <div class="message-text">
+                            「30岁正是闯的年纪！我当初放弃稳定工作去创业，就是相信年轻人应该敢想敢做。这个阶段最大的资本就是试错成本低，即使失败了还能重头来过。」
+                        </div>
+                    </div>
+                </div>
+
+                <div class="message">
+                    <div class="message-avatar lavender">💼</div>
+                    <div class="message-bubble">
+                        <div class="message-name lavender">马云 · 巅峰期</div>
+                        <div class="message-text">
+                            「冒险可以，但要有战略眼光。30岁的你已经不是初出茅庐，需要对自己的能力边界有清晰认知。真正的冒险不是盲目冲动，而是在充分评估后的果断决策。」
+                        </div>
+                    </div>
+                </div>
+
+                <div class="message">
+                    <div class="message-avatar mint">🌱</div>
+                    <div class="message-bubble">
+                        <div class="message-name mint">马云 · 青年期</div>
+                        <div class="message-text">
+                            「你说得有道理，但过度谨慎也会错失良机。很多机会稍纵即逝，等你准备好时可能窗口期已经过了。」
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="meeting-result">
+                <div class="result-title">✨ 会议共识</div>
+                <div class="result-content">
+                    <strong>结论：</strong>30岁应该在「可控风险」内追求成长。核心建议：<br><br>
+                    1️⃣ 评估当前阶段的抗风险能力，在能力范围内适度冒险<br>
+                    2️⃣ 建立底线思维，确保失败后有退路<br>
+                    3️⃣ 持续学习提升，扩大认知边界后再做重大决策
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技术特性 -->
+    <section class="tech">
+        <p class="section-label">Technology</p>
+        <h2 class="section-title">技术架构</h2>
+        <p class="section-desc">基于HarmonyOS ArkUI打造流畅体验</p>
+
+        <div class="tech-grid">
+            <div class="tech-card">
+                <div class="tech-icon">🐝</div>
+                <h4>ArkUI声明式开发</h4>
+                <p>使用HarmonyOS原生声明式UI框架，性能优异体验流畅</p>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon">🤖</div>
+                <h4>大语言模型</h4>
+                <p>后端AI模型智能解析人物传记，生成人格特征</p>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon">📡</div>
+                <h4>实时SSE流</h4>
+                <p>支持会议过程实时流式输出，增强沉浸感</p>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon">🎨</div>
+                <h4>精美卡片导出</h4>
+                <p>会议纪要支持多模板导出，生成精美分享卡片</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon">⏳</div>
+                    <span>时序人格</span>
+                </div>
+                <p>基于HarmonyOS的时序人格应用，让「过去的自己」与「未来的自己」同屏讨论，做出更明智的人生决策。</p>
+            </div>
+            <div class="footer-links">
+                <h5>产品</h5>
+                <a href="#concept">核心概念</a>
+                <a href="#flow">使用流程</a>
+                <a href="#features">功能特色</a>
+                <a href="#personas">角色库</a>
+            </div>
+            <div class="footer-links">
+                <h5>技术</h5>
+                <a href="#">HarmonyOS</a>
+                <a href="#">ArkUI</a>
+                <a href="#">AI大模型</a>
+                <a href="#">开源地址</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            © 2026 时序人格 · HarmonyOS原生应用 · 小红书黑客马拉松作品
+        </div>
+    </footer>
+
+    <script>
+        // 滚动动画
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.concept-card, .flow-content, .feature-card, .persona-card, .tech-card').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // 导航栏滚动效果
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.08)';
+            } else {
+                navbar.style.boxShadow = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "src": [
+    "pages/SplashPage",
+    "pages/Index",
+    "pages/UserCenter",
+    "pages/ProfileDetail",
+    "pages/CreateRole",
+    "pages/ExplorePersonas",
+    "pages/SummaryDetailPage",
+    "pages/SummaryListPage",
+    "pages/PosterPreviewPage",
+    "pages/MeetingParticipantPage",
+    "pages/MeetingProfilePickerPage",
+    "pages/MeetingChatPage",
+    "pages/AIDialogueCreateRole",
+    "pages/ImportProfilePage"
+  ]
+}

@@ -1,0 +1,153 @@
+﻿@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+* {
+  box-sizing: border-box;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+.anti-overlap-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-wrap: pretty;
+}
+
+.bumper-zone {
+  position: relative;
+  height: 220px;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background:
+    radial-gradient(circle at 20% 15%, rgba(99, 102, 241, 0.12), transparent 38%),
+    radial-gradient(circle at 80% 85%, rgba(45, 212, 191, 0.12), transparent 40%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(241, 245, 249, 0.9));
+  overflow: hidden;
+}
+
+.bumper-lane {
+  position: absolute;
+  inset: 10px;
+  border-radius: 16px;
+  border: 1px dashed rgba(99, 102, 241, 0.26);
+}
+
+.bumper-driver {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+  animation: bumper-drift var(--dur, 6.5s) ease-in-out var(--delay, 0s) infinite;
+  will-change: transform;
+}
+
+.bumper-driver::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.bumper-short {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.bumper-tag {
+  position: absolute;
+  bottom: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  line-height: 1;
+  color: rgb(51, 65, 85);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(203, 213, 225, 0.6);
+  border-radius: 999px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.bumper-indigo {
+  background: linear-gradient(145deg, #e0e7ff, #ffffff);
+  color: #4338ca;
+}
+
+.bumper-rose {
+  background: linear-gradient(145deg, #ffe4e6, #fff1f2);
+  color: #e11d48;
+}
+
+.bumper-slate {
+  background: linear-gradient(145deg, #e2e8f0, #f8fafc);
+  color: #334155;
+}
+
+@keyframes bumper-drift {
+  0%,
+  100% {
+    transform: translate(var(--x0), var(--y0)) rotate(-8deg);
+  }
+  25% {
+    transform: translate(var(--x1), var(--y1)) rotate(6deg);
+  }
+  50% {
+    transform: translate(var(--x2), var(--y2)) rotate(-3deg);
+  }
+  75% {
+    transform: translate(var(--x3), var(--y3)) rotate(8deg);
+  }
+}
+
+@media (max-width: 380px) {
+  .bumper-zone {
+    height: 205px;
+  }
+
+  .bumper-driver {
+    width: 58px;
+    height: 58px;
+  }
+
+  .bumper-short {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bumper-driver {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}

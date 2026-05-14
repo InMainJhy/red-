@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+openhms/
+
+# Build outputs
+build/
+dist/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# hvigor build cache
+.hvigor/
+entry/build/
+entry/*.hap
+*.hap
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Local archives and screenshots
+*.zip
+*.jpg
+*.jpeg
+*.png
+
+# Local one-off maintenance scripts
+fix_*.py
+replace_colors.py

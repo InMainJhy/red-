@@ -1,0 +1,16 @@
+{
+  "float": [
+    {
+      "name": "responsive_page_horizontal_padding",
+      "value": "32vp"
+    },
+    {
+      "name": "responsive_card_padding",
+      "value": "22vp"
+    },
+    {
+      "name": "responsive_content_max_width",
+      "value": "1120vp"
+    }
+  ]
+}
