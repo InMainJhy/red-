@@ -18,6 +18,9 @@ import { ShareSheet } from '../components/ShareSheet'
 import { BackButton } from '../components/BackButton'
 import { DynamicGlassBackground } from '../components/DynamicGlassBackground'
 import { Colors } from '../common/styles/Colors'
+import { buildSummaryDetailUri } from '../common/LaunchIntent'
+import { CalendarReminderService } from '../service/CalendarReminderService'
+import { ServiceCollaborationService } from '../service/ServiceCollaborationService'
 
 export interface SummaryDetailRouteParams {
   summaryId?: string
@@ -313,6 +316,27 @@ struct SummaryDetailPage {
     })
   }
 
+  private summaryDetailUri(): string {
+    return buildSummaryDetailUri(this.summaryId, this.posterRunId())
+  }
+
+  private openSummaryQrCode(): void {
+    const qrValue = this.summaryDetailUri()
+    if (qrValue.length <= 0) {
+      this.showToast('当前纪要还不能生成二维码')
+      return
+    }
+
+    router.pushUrl({
+      url: 'pages/QrLinkPage',
+      params: {
+        title: '分享纪要详情',
+        subtitle: '扫码后在另一台设备打开这份纪要',
+        qrValue: qrValue
+      }
+    })
+  }
+
   private async handleExportVideo(): Promise<void> {
     await this.copyTextToClipboard(this.shareText(), '已复制回放文案到剪贴板')
   }
@@ -460,7 +484,28 @@ struct SummaryDetailPage {
 
   private handleDeviceShare(deviceId: string): void {
     this.showShareSheet = false
-    this.showToast(`设备流转至${deviceId === 'tablet' ? '平板' : '智慧屏'}功能即将上线`)
+    if (!this.summaryRecord) {
+      this.showToast('暂无可流转的纪要')
+      return
+    }
+
+    const target = deviceId === 'tablet' ? 'tablet' : 'screen'
+    try {
+      const ctx = getContext(this) as common.UIAbilityContext
+      void ServiceCollaborationService.startSummaryCollaboration(ctx, target, {
+        launchAction: 'open-summary-detail',
+        summaryId: this.summaryId,
+        arenaRunId: this.posterRunId()
+      }).then((deviceName: string) => {
+        this.showToast(`已流转到${deviceName}`)
+      }).catch((error: Error) => {
+        console.error('[SummaryDetailPage] startSummaryCollaboration failed:', error)
+        this.showToast(error.message && error.message.length > 0 ? error.message : '设备协同失败')
+      })
+    } catch (error) {
+      console.error('[SummaryDetailPage] handleDeviceShare failed:', error)
+      this.showToast('当前设备不支持跨设备协同')
+    }
   }
 
   private handleSystemShare(): void {
@@ -468,6 +513,28 @@ struct SummaryDetailPage {
     if (!this.summaryRecord) return
     // 降级为复制文本
     void this.handleCopyContent()
+  }
+
+  private async createReviewReminder(): Promise<void> {
+    if (!this.summaryRecord) {
+      this.showToast('暂无可提醒的纪要')
+      return
+    }
+
+    try {
+      const ctx = getContext(this) as common.UIAbilityContext
+      const reminderId = await CalendarReminderService.publishSummaryReviewReminder(this.summaryRecord, ctx)
+      const reminderDate = CalendarReminderService.nextReviewDate(
+        this.summaryRecord.updatedAt && this.summaryRecord.updatedAt.length > 0
+          ? this.summaryRecord.updatedAt
+          : this.summaryRecord.createdAt
+      )
+      this.showToast(`已创建复盘提醒 · ${CalendarReminderService.formatReviewDate(reminderDate)}`)
+      console.info('[SummaryDetailPage] created review reminder:', reminderId)
+    } catch (error) {
+      console.error('[SummaryDetailPage] createReviewReminder failed:', error)
+      this.showToast('创建提醒失败，请检查系统通知权限')
+    }
   }
 
   @Builder
@@ -526,6 +593,35 @@ struct SummaryDetailPage {
         .onClick(() => {
           void this.handleCopyContent()
         })
+
+      Button('二维码')
+        .height(36)
+        .padding({ left: 14, right: 14 })
+        .fontSize(Typography.size.xs)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(MintColors.mintDark)
+        .backgroundColor(MintColors.surfaceGlass)
+        .backdropBlur(40)
+        .linearGradient({
+          angle: 135,
+          colors: [
+            [MintColors.cardPrimary, 0],
+            ['rgba(255, 255, 255, 0.28)', 1]
+          ]
+        })
+        .border({
+          width: 1.5,
+          color: 'rgba(255, 255, 255, 0.95)',
+          radius: BorderRadius.pill
+        })
+        .borderRadius(BorderRadius.pill)
+        .shadow({
+          radius: 16,
+          color: 'rgba(92, 168, 255, 0.18)',
+          offsetX: -2,
+          offsetY: 6
+        })
+        .onClick(() => this.openSummaryQrCode())
 
       Button({ type: ButtonType.Circle, stateEffect: true }) {
         Text(this.summaryRecord?.isFavorite ? '★' : '☆')
@@ -761,6 +857,12 @@ struct SummaryDetailPage {
           })
           this.buildChipAction('视频脚本', () => {
             void this.handleExportVideo()
+          })
+          this.buildChipAction('二维码', () => {
+            this.openSummaryQrCode()
+          })
+          this.buildChipAction('复盘提醒', () => {
+            void this.createReviewReminder()
           })
           this.buildChipAction(this.isExpanding ? '扩写中...' : (this.expandedSummary.length > 0 ? '已扩写' : 'AI 扩写'), () => {
             void this.expandSummary()

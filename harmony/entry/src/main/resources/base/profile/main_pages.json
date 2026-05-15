@@ -8,6 +8,7 @@
     "pages/ExplorePersonas",
     "pages/SummaryDetailPage",
     "pages/SummaryListPage",
+    "pages/QrLinkPage",
     "pages/PosterPreviewPage",
     "pages/MeetingParticipantPage",
     "pages/MeetingProfilePickerPage",

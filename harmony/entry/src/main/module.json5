@@ -19,6 +19,46 @@
       },
       {
         "name": "ohos.permission.GET_BUNDLE_INFO"
+      },
+      {
+        "name": "ohos.permission.PUBLISH_AGENT_REMINDER",
+        "reason": "$string:permission_reminder_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.DISTRIBUTED_DATASYNC",
+        "reason": "$string:permission_distributed_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.GET_NETWORK_INFO",
+        "reason": "$string:permission_distributed_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.SET_NETWORK_INFO",
+        "reason": "$string:permission_distributed_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
       }
     ],
     "pages": "$profile:main_pages",
@@ -40,11 +80,54 @@
             "actions": [
               "ohos.want.action.home"
             ]
+          },
+          {
+            "actions": [
+              "ohos.intent.action.VIEW"
+            ],
+            "entities": [
+              "entity.system.browsable"
+            ],
+            "uris": [
+              {
+                "scheme": "timepersona",
+                "host": "meeting",
+                "path": "/continue"
+              },
+              {
+                "scheme": "timepersona",
+                "host": "meeting",
+                "path": "/new"
+              },
+              {
+                "scheme": "timepersona",
+                "host": "summaries",
+                "path": "/recent"
+              },
+              {
+                "scheme": "timepersona",
+                "host": "summary",
+                "path": "/detail"
+              }
+            ]
           }
         ]
       }
     ],
     "extensionAbilities": [
+      {
+        "name": "MeetingQuickActionsFormAbility",
+        "srcEntry": "./ets/entryformability/MeetingQuickActionsFormAbility.ets",
+        "label": "$string:meeting_quick_actions_form_label",
+        "description": "$string:meeting_quick_actions_form_desc",
+        "type": "form",
+        "metadata": [
+          {
+            "name": "ohos.extension.form",
+            "resource": "$profile:form_config"
+          }
+        ]
+      },
       {
         "name": "EntryBackupAbility",
         "srcEntry": "./ets/entrybackupability/EntryBackupAbility.ets",

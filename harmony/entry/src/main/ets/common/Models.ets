@@ -454,6 +454,7 @@ export interface RouteParams {
   topic?: string
   continueFromRunId?: string
   sessionId?: string
+  summaryId?: string
   focus?: string
   reasoningEffort?: ReasoningEffort
   /** 会议对话轮数（如 5–25），由参会页传入 */

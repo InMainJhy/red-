@@ -2,11 +2,53 @@ import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want 
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { statusBarContentColor } from '../common/styles/ThemeMode';
+import { buildLaunchIntentFromQuickAction, buildWantParamsFromLaunchIntent, parseLaunchIntentFromWant } from '../common/LaunchIntent';
+import { LaunchIntentStore } from '../common/LaunchIntentStore';
+import { MeetingSessionStore } from '../utils/MeetingSessionStore';
+import abilityConnectionManager from '@ohos.distributedsched.abilityConnectionManager';
 
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
   private mainWindow?: window.Window;
+
+  private cacheLaunchIntentFromCollaborationParams(params?: Record<string, string>): void {
+    if (!params) {
+      return
+    }
+
+    const wantParams: Record<string, Object> = {}
+    Object.keys(params).forEach((key: string) => {
+      wantParams[key] = params[key]
+    })
+
+    const intent = parseLaunchIntentFromWant(undefined, wantParams)
+    if (intent.action === 'none') {
+      return
+    }
+    LaunchIntentStore.set(intent)
+    this.context.eventHub.emit('launchIntentReceived', {
+      action: intent.action
+    })
+    hilog.info(DOMAIN, 'testTag', 'cached collaboration launch intent: %{public}s', intent.action)
+  }
+
+  private async markContinuationStateActive(): Promise<void> {
+    try {
+      await this.context.setMissionContinueState(AbilityConstant.ContinueState.ACTIVE)
+    } catch (err) {
+      hilog.warn(DOMAIN, 'testTag', 'setMissionContinueState failed: %{public}s', JSON.stringify(err))
+    }
+  }
+
+  private cacheLaunchIntentFromWant(want: Want): void {
+    const intent = parseLaunchIntentFromWant(want.uri?.toString(), want.parameters as Record<string, Object> | undefined)
+    if (intent.action === 'none') {
+      return
+    }
+    LaunchIntentStore.set(intent)
+    hilog.info(DOMAIN, 'testTag', 'cached launch intent: %{public}s', intent.action)
+  }
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     try {
@@ -14,6 +56,9 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
+    void MeetingSessionStore.init(this.context)
+    void this.markContinuationStateActive()
+    this.cacheLaunchIntentFromWant(want);
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 
@@ -78,6 +123,7 @@ export default class EntryAbility extends UIAbility {
 
   onForeground(): void {
     // Ability has brought to foreground
+    void this.markContinuationStateActive()
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
   }
 
@@ -93,6 +139,7 @@ export default class EntryAbility extends UIAbility {
    */
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', 'onNewWant received');
+    this.cacheLaunchIntentFromWant(want);
 
     const fromNfc = want.parameters?.['fromNfc'] as boolean | undefined;
     if (fromNfc) {
@@ -111,5 +158,65 @@ export default class EntryAbility extends UIAbility {
         hilog.info(DOMAIN, 'testTag', '已通过 eventHub 发送碰一碰数据');
       }
     }
+
+    const pendingIntent = LaunchIntentStore.peek()
+    if (pendingIntent && pendingIntent.action !== 'none') {
+      this.context.eventHub.emit('launchIntentReceived', {
+        action: pendingIntent.action
+      });
+    }
+  }
+
+  onContinue(wantParam: Record<string, Object>): AbilityConstant.OnContinueResult {
+    const fallbackIntent = buildLaunchIntentFromQuickAction('continue-meeting', {
+      continueFromRunId: MeetingSessionStore.getContinueFromRunId(),
+      sessionId: MeetingSessionStore.getSessionId(),
+      topic: MeetingSessionStore.getTopic(),
+      profileIds: MeetingSessionStore.getProfileIds(),
+      selectedAgentIds: MeetingSessionStore.getSelectedAgents(),
+      reasoningEffort: MeetingSessionStore.getReasoningEffort()
+    })
+
+    const hasPreparedMeeting = fallbackIntent.profileIds.length > 0 && fallbackIntent.selectedAgentIds.length >= 2
+    const hasContinueMeeting = hasPreparedMeeting && fallbackIntent.continueFromRunId.length > 0
+    const intent = hasContinueMeeting
+      ? fallbackIntent
+      : (hasPreparedMeeting ? buildLaunchIntentFromQuickAction('new-meeting', {
+        topic: fallbackIntent.topic,
+        profileIds: fallbackIntent.profileIds,
+        selectedAgentIds: fallbackIntent.selectedAgentIds,
+        reasoningEffort: fallbackIntent.reasoningEffort
+      }) : null)
+
+    if (!intent) {
+      hilog.warn(DOMAIN, 'testTag', 'onContinue rejected: missing meeting context')
+      return AbilityConstant.OnContinueResult.REJECT
+    }
+
+    const params = buildWantParamsFromLaunchIntent(intent)
+    wantParam['launchAction'] = params.launchAction
+    wantParam['continueFromRunId'] = params.continueFromRunId
+    wantParam['sessionId'] = params.sessionId
+    wantParam['topic'] = params.topic
+    wantParam['profileIds'] = params.profileIds
+    wantParam['selectedAgentIds'] = params.selectedAgentIds
+    wantParam['reasoningEffort'] = params.reasoningEffort
+    wantParam['continuationSource'] = 'meeting-continuation'
+    hilog.info(DOMAIN, 'testTag', 'onContinue accepted with action: %{public}s', intent.action)
+    return AbilityConstant.OnContinueResult.AGREE
+  }
+
+  onCollaborate(wantParam: Record<string, Object>): AbilityConstant.CollaborateResult {
+    const connectOptionsObject = wantParam[abilityConnectionManager.CollaborationKeys.CONNECT_OPTIONS]
+    if (typeof connectOptionsObject === 'object' && connectOptionsObject !== null) {
+      const connectOptions = connectOptionsObject as Record<string, Object>
+      const parametersObject = connectOptions['parameters']
+      if (typeof parametersObject === 'object' && parametersObject !== null) {
+        this.cacheLaunchIntentFromCollaborationParams(parametersObject as Record<string, string>)
+      }
+    }
+
+    hilog.info(DOMAIN, 'testTag', 'onCollaborate accepted')
+    return AbilityConstant.CollaborateResult.ACCEPT
   }
 }

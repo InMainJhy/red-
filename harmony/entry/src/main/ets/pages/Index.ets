@@ -22,6 +22,8 @@ import { Colors, LiquidGlass } from '../common/styles/Colors'
 import { Typography } from '../common/styles/Typography'
 import { BorderRadius } from '../common/styles/BorderRadius'
 import { LoadingOverlay, ErrorToast, RecordsTab, RecordItem, TabBar, Icon, AnimatedCloudMascot } from '../components'
+import { LaunchIntent, buildLaunchIntentFromQuickAction, buildRecentMeetingSnapshot, buildRouteParamsFromLaunchIntent } from '../common/LaunchIntent'
+import { LaunchIntentStore } from '../common/LaunchIntentStore'
 
 interface HomeRouteParams extends RouteParams {
   userName?: string
@@ -111,6 +113,7 @@ struct Index {
   @State private currentBreakpoint: BreakpointType = 'sm'
   private calendarScroller: Scroller = new Scroller()
   private detachBreakpointListener?: () => void
+  private launchIntentListener?: (payload?: Object) => void
 
   private featureMood(tag: string): 'happy' | 'shy' | 'angry' | 'sleep' {
     if (tag === '01') {
@@ -141,6 +144,8 @@ struct Index {
       this.hasLoadedRecordsOnce = true
       void this.loadMeetingRecords()
     }
+    this.attachLaunchIntentListener()
+    void this.consumePendingLaunchIntent()
   }
 
   onPageShow(): void {
@@ -151,6 +156,7 @@ struct Index {
     if (this.activeTab === 1) {
       void this.loadMeetingRecords()
     }
+    void this.consumePendingLaunchIntent()
   }
 
   aboutToDisappear(): void {
@@ -158,6 +164,31 @@ struct Index {
       this.detachBreakpointListener()
       this.detachBreakpointListener = undefined
     }
+    this.detachLaunchIntentListener()
+  }
+
+  private attachLaunchIntentListener(): void {
+    if (this.launchIntentListener) {
+      return
+    }
+
+    const hostContext = this.getHostContext()
+    if (!hostContext) {
+      return
+    }
+
+    this.launchIntentListener = (_payload?: Object) => {
+      void this.consumePendingLaunchIntent()
+    }
+    hostContext.eventHub.on('launchIntentReceived', this.launchIntentListener)
+  }
+
+  private detachLaunchIntentListener(): void {
+    const hostContext = this.getHostContext()
+    if (hostContext && this.launchIntentListener) {
+      hostContext.eventHub.off('launchIntentReceived', this.launchIntentListener)
+    }
+    this.launchIntentListener = undefined
   }
 
   private attachResponsiveBreakpoint(): void {
@@ -930,6 +961,23 @@ struct Index {
     await this.pushPage('pages/SummaryDetailPage', params)
   }
 
+  private async openSummaryDetailFromLaunch(intent: LaunchIntent): Promise<void> {
+    const params: IndexNavigationParams = {}
+    if (intent.summaryId.length > 0) {
+      params.summaryId = intent.summaryId
+    }
+    if (intent.arenaRunId.length > 0) {
+      params.arenaRunId = intent.arenaRunId
+    }
+
+    if (!params.summaryId && !params.arenaRunId) {
+      this.showToast('缺少纪要标识，无法打开详情')
+      return
+    }
+
+    await this.pushPage('pages/SummaryDetailPage', params)
+  }
+
   private async goSummaryList(): Promise<void> {
     await this.pushPage('pages/SummaryListPage')
   }
@@ -969,6 +1017,106 @@ struct Index {
       void promptAction.openToast({ message: message })
     } catch (_error) {
     }
+  }
+
+  private latestLaunchSnapshot() {
+    return buildRecentMeetingSnapshot(MeetingSessionStore.getHistoryRecords(), this.meetingReasoningEffort)
+  }
+
+  private async consumePendingLaunchIntent(): Promise<void> {
+    const intent = LaunchIntentStore.take()
+    if (!intent || intent.action === 'none') {
+      return
+    }
+
+    if (intent.action === 'open-recent-summaries') {
+      await this.goSummaryList()
+      return
+    }
+
+    if (intent.action === 'open-summary-detail') {
+      await this.openSummaryDetailFromLaunch(intent)
+      return
+    }
+
+    if (intent.action === 'new-meeting') {
+      await this.handleLaunchNewMeeting()
+      return
+    }
+
+    await this.handleLaunchContinueMeeting(intent)
+  }
+
+  private async handleLaunchNewMeeting(): Promise<void> {
+    MeetingSessionStore.clearContinueContext()
+    const effectiveProfileIds = this.effectiveProfileIdsForLaunch()
+    if (effectiveProfileIds.length === 0) {
+      return
+    }
+
+    const params: IndexNavigationParams = {
+      profileId: effectiveProfileIds[0],
+      profileIds: effectiveProfileIds.join(','),
+      selectedAgentIds: this.effectiveSelectedAgentIds().join(','),
+      topic: '',
+      reasoningEffort: this.meetingReasoningEffort,
+      focus: 'roles'
+    }
+    await this.pushPage('pages/MeetingParticipantPage', params)
+  }
+
+  private effectiveProfileIdsForLaunch(): string[] {
+    if (this.selectedProfile.id.length > 0) {
+      return [this.selectedProfile.id]
+    }
+    const sessionProfileIds = MeetingSessionStore.getProfileIds()
+    if (sessionProfileIds.length > 0) {
+      return sessionProfileIds
+    }
+    if (this.profiles.length > 0) {
+      return [this.profiles[0].id]
+    }
+    return []
+  }
+
+  private async handleLaunchContinueMeeting(intent: LaunchIntent): Promise<void> {
+    const fallbackIntent = buildLaunchIntentFromQuickAction('continue-meeting', this.latestLaunchSnapshot())
+    const effectiveIntent: LaunchIntent = {
+      action: 'continue-meeting',
+      targetPage: 'pages/MeetingChatPage',
+      continueFromRunId: intent.continueFromRunId.length > 0 ? intent.continueFromRunId : fallbackIntent.continueFromRunId,
+      sessionId: intent.sessionId.length > 0 ? intent.sessionId : fallbackIntent.sessionId,
+      summaryId: '',
+      arenaRunId: '',
+      topic: intent.topic.length > 0 ? intent.topic : fallbackIntent.topic,
+      profileIds: intent.profileIds.length > 0 ? intent.profileIds : fallbackIntent.profileIds,
+      selectedAgentIds: intent.selectedAgentIds.length > 0 ? intent.selectedAgentIds : fallbackIntent.selectedAgentIds,
+      reasoningEffort: intent.reasoningEffort
+    }
+
+    if (effectiveIntent.profileIds.length === 0 || effectiveIntent.selectedAgentIds.length < 2) {
+      this.showToast('还没有可继续的会议')
+      return
+    }
+
+    MeetingSessionStore.setProfileId(effectiveIntent.profileIds[0])
+    MeetingSessionStore.setProfileIds(effectiveIntent.profileIds)
+    MeetingSessionStore.setSelectedAgents(effectiveIntent.selectedAgentIds)
+    MeetingSessionStore.setTopic(effectiveIntent.topic)
+    MeetingSessionStore.setReasoningEffort(effectiveIntent.reasoningEffort)
+    MeetingSessionStore.setContinueContext(effectiveIntent.continueFromRunId, effectiveIntent.sessionId)
+
+    const routeParams = buildRouteParamsFromLaunchIntent(effectiveIntent)
+    const params: IndexNavigationParams = {
+      profileId: effectiveIntent.profileIds[0],
+      profileIds: routeParams.profileIds,
+      selectedAgentIds: routeParams.selectedAgentIds,
+      topic: routeParams.topic,
+      continueFromRunId: routeParams.continueFromRunId,
+      sessionId: routeParams.sessionId,
+      reasoningEffort: routeParams.reasoningEffort
+    }
+    await this.pushPage('pages/MeetingChatPage', params)
   }
 
   @Builder

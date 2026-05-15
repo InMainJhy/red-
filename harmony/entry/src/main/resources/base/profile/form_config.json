@@ -1,0 +1,64 @@
+{
+  "forms": [
+    {
+      "name": "meeting_quick_actions_focus",
+      "displayName": "$string:meeting_quick_actions_focus_display_name",
+      "description": "$string:meeting_quick_actions_focus_desc",
+      "src": "./ets/widget/pages/MeetingQuickActionsFocusCard.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": false,
+      "isDefault": true,
+      "updateEnabled": false,
+      "defaultDimension": "2*4",
+      "supportDimensions": [
+        "2*4",
+        "4*4"
+      ]
+    },
+    {
+      "name": "meeting_quick_actions_editorial",
+      "displayName": "$string:meeting_quick_actions_editorial_display_name",
+      "description": "$string:meeting_quick_actions_editorial_desc",
+      "src": "./ets/widget/pages/MeetingQuickActionsEditorialCard.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": false,
+      "isDefault": false,
+      "updateEnabled": false,
+      "defaultDimension": "2*4",
+      "supportDimensions": [
+        "2*4",
+        "4*4"
+      ]
+    },
+    {
+      "name": "meeting_quick_actions_glass",
+      "displayName": "$string:meeting_quick_actions_glass_display_name",
+      "description": "$string:meeting_quick_actions_glass_desc",
+      "src": "./ets/widget/pages/MeetingQuickActionsGlassCard.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": false,
+      "isDefault": false,
+      "updateEnabled": false,
+      "defaultDimension": "2*4",
+      "supportDimensions": [
+        "2*4",
+        "4*4"
+      ]
+    }
+  ]
+}

@@ -3,6 +3,46 @@
     {
       "name": "app_name",
       "value": "时序人格"
+    },
+    {
+      "name": "meeting_quick_actions_form_label",
+      "value": "会议快捷操作"
+    },
+    {
+      "name": "meeting_quick_actions_form_desc",
+      "value": "继续上次会议、开始新会议、查看最近纪要"
+    },
+    {
+      "name": "meeting_quick_actions_focus_display_name",
+      "value": "会议快捷卡片·聚焦"
+    },
+    {
+      "name": "meeting_quick_actions_focus_desc",
+      "value": "大尺寸聚焦风格，适合直接继续会议"
+    },
+    {
+      "name": "meeting_quick_actions_editorial_display_name",
+      "value": "会议快捷卡片·编排"
+    },
+    {
+      "name": "meeting_quick_actions_editorial_desc",
+      "value": "偏杂志风格的桌面会议卡片"
+    },
+    {
+      "name": "meeting_quick_actions_glass_display_name",
+      "value": "会议快捷卡片·玻璃"
+    },
+    {
+      "name": "meeting_quick_actions_glass_desc",
+      "value": "轻盈玻璃风格的桌面会议卡片"
+    },
+    {
+      "name": "permission_reminder_reason",
+      "value": "用于把会议纪要添加为系统复盘提醒"
+    },
+    {
+      "name": "permission_distributed_reason",
+      "value": "用于发现附近设备并发起跨设备协同打开纪要"
     }
   ]
 }

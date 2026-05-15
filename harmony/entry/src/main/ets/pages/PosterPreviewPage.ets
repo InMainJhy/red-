@@ -12,6 +12,7 @@ import promptAction from '@ohos.promptAction'
 import { fetchSafeAreaInsets } from '../common/WindowSafeArea'
 import { PersonaApi } from '../service/PersonaApi'
 import { ImageSuperResolutionService, SuperResolutionScale, SuperResolutionResult } from '../service/ImageSuperResolutionService'
+import { AVCastService } from '../service/AVCastService'
 import { MintColors } from '../common/styles/MintColors'
 import { Typography } from '../common/styles/Typography'
 import { Spacing } from '../common/styles/Spacing'
@@ -478,6 +479,22 @@ struct PosterPreviewPage {
     }
   }
 
+  private async openCastPicker(): Promise<void> {
+    if (this.posterUrl.length === 0) {
+      promptAction.showToast({ message: '请先等待海报生成完成' })
+      return
+    }
+
+    try {
+      const ctx = getContext(this) as common.UIAbilityContext
+      await AVCastService.openVideoCastPicker(ctx)
+      promptAction.showToast({ message: '已打开投播设备列表' })
+    } catch (err) {
+      console.error('[PosterPreviewPage] openCastPicker failed:', err)
+      promptAction.showToast({ message: '当前设备暂不支持投播' })
+    }
+  }
+
   private goBack(): void {
     try {
       router.back()
@@ -672,13 +689,13 @@ struct PosterPreviewPage {
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
 
       if (!this.isLoading && this.error.length === 0) {
-        Button('复制链接')
+        Button('大屏投播')
           .height(36)
           .fontSize(Typography.size.xs)
           .fontColor(MintColors.mintDark)
           .backgroundColor('rgba(17, 17, 17, 0.12)')
           .borderRadius(BorderRadius.pill)
-          .onClick(() => this.copyPosterUrl())
+          .onClick(() => void this.openCastPicker())
       }
     }.width('100%')
   }
@@ -692,7 +709,7 @@ struct PosterPreviewPage {
         .fontColor(MintColors.textPrimary)
         .width('100%')
 
-      Text('支持碰一碰、抓一抓，也可直接复制链接。')
+      Text('支持碰一碰、抓一抓、投播到大屏，也可直接复制链接。')
         .fontSize(Typography.size.xs)
         .fontColor(MintColors.textSecondary)
         .lineHeight(18)
@@ -721,6 +738,19 @@ struct PosterPreviewPage {
           .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
 
           Text('抓一抓：握拳抓取，系统自动传送')
+            .fontSize(Typography.size.caption)
+            .fontColor(MintColors.textPrimary)
+        }.width('100%').alignItems(VerticalAlign.Center)
+
+        Row({ space: Spacing.sm }) {
+          Column() {
+            Text('播').fontSize(Typography.size.xs).fontWeight(FontWeight.Bold).fontColor(Colors.textInverse)
+          }
+          .width(22).height(22).borderRadius(11)
+          .backgroundColor(MintColors.mintDark)
+          .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+
+          Text('大屏投播：调起系统投播面板选择智慧屏')
             .fontSize(Typography.size.caption)
             .fontColor(MintColors.textPrimary)
         }.width('100%').alignItems(VerticalAlign.Center)
@@ -760,6 +790,18 @@ struct PosterPreviewPage {
           .borderRadius(BorderRadius.xxl)
           .enabled(this.canEnhancePoster())
           .onClick(() => void this.enhancePosterResolution())
+
+      }.width('100%')
+
+      Row({ space: Spacing.sm }) {
+        Button('大屏投播')
+          .layoutWeight(1).height(42)
+          .fontSize(Typography.size.body)
+          .fontColor(MintColors.mintDark)
+          .backgroundColor('rgba(17, 17, 17, 0.10)')
+          .borderRadius(BorderRadius.xxl)
+          .enabled(this.posterUrl.length > 0)
+          .onClick(() => void this.openCastPicker())
 
         Button('复制链接')
           .layoutWeight(1).height(42)

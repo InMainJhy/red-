@@ -1,0 +1,75 @@
+{
+  "insightIntents": [
+    {
+      "intentName": "ContinueMeeting",
+      "domain": "timepersona.meeting",
+      "intentVersion": "1.0.0",
+      "srcEntry": "./ets/intents/MeetingInsightIntentExecutor.ets",
+      "uiAbility": {
+        "ability": "EntryAbility",
+        "executeMode": [
+          "foreground"
+        ]
+      },
+      "displayName": "继续上次会议",
+      "displayDescription": "恢复最近一场人格会议",
+      "icon": "$media:layered_image",
+      "keywords": [
+        "继续会议",
+        "恢复会议",
+        "上次会议"
+      ],
+      "inputParams": [],
+      "outputParams": []
+    },
+    {
+      "intentName": "StartMeeting",
+      "domain": "timepersona.meeting",
+      "intentVersion": "1.0.0",
+      "srcEntry": "./ets/intents/MeetingInsightIntentExecutor.ets",
+      "uiAbility": {
+        "ability": "EntryAbility",
+        "executeMode": [
+          "foreground"
+        ]
+      },
+      "displayName": "开始新会议",
+      "displayDescription": "打开人格会议准备页",
+      "icon": "$media:layered_image",
+      "keywords": [
+        "开始会议",
+        "新会议",
+        "人格会议"
+      ],
+      "inputParams": [],
+      "outputParams": []
+    },
+    {
+      "intentName": "OpenRecentSummaries",
+      "domain": "timepersona.summary",
+      "intentVersion": "1.0.0",
+      "srcEntry": "./ets/intents/MeetingInsightIntentExecutor.ets",
+      "uiAbility": {
+        "ability": "EntryAbility",
+        "executeMode": [
+          "foreground"
+        ]
+      },
+      "displayName": "打开最近纪要",
+      "displayDescription": "查看最近的人格会议纪要",
+      "icon": "$media:layered_image",
+      "keywords": [
+        "最近纪要",
+        "会议纪要",
+        "查看纪要"
+      ],
+      "inputParams": [],
+      "outputParams": []
+    }
+  ],
+  "insightIntentsSrcEntry": [
+    {
+      "srcEntry": "./ets/intents/MeetingInsightIntentExecutor.ets"
+    }
+  ]
+}

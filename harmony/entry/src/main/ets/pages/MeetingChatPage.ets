@@ -1,5 +1,6 @@
 import { router } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
+import pasteboard from '@ohos.pasteboard'
 import {
   ARENA_USER_TOPIC_AGENT_ID,
   ArenaMessage,
@@ -23,6 +24,7 @@ import { Spacing } from '../common/styles/Spacing'
 import { BorderRadius } from '../common/styles/BorderRadius'
 import { AnimationDuration, AnimationCurve } from '../common/styles/Animation'
 import { parseMeetingSelection } from '../common/MeetingSelection'
+import { buildContinueMeetingShareText, buildContinueMeetingUri } from '../common/LaunchIntent'
 import promptAction from '@ohos.promptAction'
 import { BackButton } from '../components/BackButton'
 import { DynamicGlassBackground } from '../components/DynamicGlassBackground'
@@ -543,6 +545,84 @@ struct MeetingChatPage {
     return '均衡'
   }
 
+  private effectiveProfileIds(): string[] {
+    if (this.profileIds.length > 0) {
+      return [...this.profileIds]
+    }
+    if (this.profileId.length > 0) {
+      return [this.profileId]
+    }
+    return []
+  }
+
+  private canShareContinueLink(): boolean {
+    return this.lastRunId.trim().length > 0 &&
+      this.effectiveProfileIds().length > 0 &&
+      this.selectedAgentIds.length >= 2
+  }
+
+  private continueMeetingShareText(): string {
+    return buildContinueMeetingShareText({
+      continueFromRunId: this.lastRunId,
+      sessionId: this.activeSessionId,
+      topic: this.topic,
+      profileIds: this.effectiveProfileIds(),
+      selectedAgentIds: this.selectedAgentIds,
+      reasoningEffort: this.reasoningEffort
+    })
+  }
+
+  private continueMeetingUri(): string {
+    return buildContinueMeetingUri({
+      continueFromRunId: this.lastRunId,
+      sessionId: this.activeSessionId,
+      topic: this.topic,
+      profileIds: this.effectiveProfileIds(),
+      selectedAgentIds: this.selectedAgentIds,
+      reasoningEffort: this.reasoningEffort
+    })
+  }
+
+  private showToast(message: string): void {
+    try {
+      promptAction.openToast({ message: message })
+    } catch (_error) {
+    }
+  }
+
+  private async copyContinueMeetingLink(): Promise<void> {
+    if (!this.canShareContinueLink()) {
+      this.showToast('当前会议还不能生成继续链接')
+      return
+    }
+
+    const shareText = this.continueMeetingShareText()
+    try {
+      const board = pasteboard.getSystemPasteboard()
+      const data = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, shareText)
+      await board.setData(data)
+      this.showToast('已复制继续会议链接')
+    } catch (_error) {
+      this.showToast('复制链接失败')
+    }
+  }
+
+  private openContinueMeetingQrCode(): void {
+    if (!this.canShareContinueLink()) {
+      this.showToast('当前会议还不能生成二维码')
+      return
+    }
+
+    router.pushUrl({
+      url: 'pages/QrLinkPage',
+      params: {
+        title: '继续上次会议',
+        subtitle: '扫码后在另一台设备恢复这场会议',
+        qrValue: this.continueMeetingUri()
+      }
+    })
+  }
+
   private goBack(): void {
     router.back()
   }
@@ -1029,6 +1109,40 @@ struct MeetingChatPage {
           radius: BorderRadius.pill
         })
         .borderRadius(BorderRadius.pill)
+
+      Text('复制链接')
+        .fontSize(Typography.size.xs)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(this.canShareContinueLink() ? MEETING_DEEP_BLUE : MintColors.textMuted)
+        .padding({ left: 10, right: 10, top: 7, bottom: 7 })
+        .backgroundColor(this.canShareContinueLink() ? 'rgba(240, 248, 255, 0.94)' : 'rgba(244, 247, 250, 0.92)')
+        .border({
+          width: 1,
+          color: this.canShareContinueLink() ? MintColors.cardPrimary : 'rgba(187, 199, 214, 0.7)',
+          radius: BorderRadius.pill
+        })
+        .borderRadius(BorderRadius.pill)
+        .opacity(this.canShareContinueLink() ? 1 : 0.76)
+        .onClick(() => {
+          void this.copyContinueMeetingLink()
+        })
+
+      Text('二维码')
+        .fontSize(Typography.size.xs)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(this.canShareContinueLink() ? MEETING_DEEP_BLUE : MintColors.textMuted)
+        .padding({ left: 10, right: 10, top: 7, bottom: 7 })
+        .backgroundColor(this.canShareContinueLink() ? 'rgba(240, 248, 255, 0.94)' : 'rgba(244, 247, 250, 0.92)')
+        .border({
+          width: 1,
+          color: this.canShareContinueLink() ? MintColors.cardPrimary : 'rgba(187, 199, 214, 0.7)',
+          radius: BorderRadius.pill
+        })
+        .borderRadius(BorderRadius.pill)
+        .opacity(this.canShareContinueLink() ? 1 : 0.76)
+        .onClick(() => {
+          this.openContinueMeetingQrCode()
+        })
     }
     .width('100%')
     .padding({
