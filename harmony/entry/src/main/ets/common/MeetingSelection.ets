@@ -8,8 +8,6 @@ export interface MeetingSelectionState {
   selectedAgentIds: string[]
 }
 
-export const MAX_MEETING_PARTICIPANTS: number = 3
-
 function normalizeStringArray(values: string[]): string[] {
   const unique: string[] = []
   for (const value of values) {

@@ -335,8 +335,7 @@ export async function runArena(
 ): Promise<ArenaRunResponse> {
   const participants = input.selectedAgentIds
     .map((agentId) => input.agents.find((agent) => agent.agentId === agentId))
-    .filter((agent): agent is PersonaSpec => Boolean(agent))
-    .slice(0, 3);
+    .filter((agent): agent is PersonaSpec => Boolean(agent));
 
   if (participants.length < 2) {
     throw new Error('至少需要 2 个 agent 才能开始讨论');

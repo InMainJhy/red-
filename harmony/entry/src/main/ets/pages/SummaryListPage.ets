@@ -21,6 +21,7 @@ interface SummaryCalendarDay {
 }
 
 interface MeetingCardData {
+  cardKey: string
   summaryId: string
   arenaRunId: string
   title: string
@@ -142,15 +143,24 @@ struct SummaryListPage {
       }
       const invalidSummaryIds: string[] = []
       const validCards: MeetingCardData[] = []
+      const seenCardKeys = new Set<string>()
 
-      response.items.forEach((item: SummaryListItem) => {
+      const items = response.items ? response.items : []
+      items.forEach((item: SummaryListItem, index: number) => {
+        const rawId = item.id && item.id.length > 0 ? item.id : ''
+        if (rawId.length === 0) {
+          invalidSummaryIds.push(`empty-id-${index}`)
+          return
+        }
         const createdAt = item.createdAt ?? ''
         const parsedDate = createdAt.length > 0 ? new Date(createdAt) : null
         if (createdAt.length === 0 || !parsedDate || Number.isNaN(parsedDate.getTime())) {
-          invalidSummaryIds.push(item.id)
+          invalidSummaryIds.push(rawId)
           return
         }
-        validCards.push(this.mapToCard(item))
+        const uniqueKey = seenCardKeys.has(rawId) ? `${rawId}-${index}` : rawId
+        seenCardKeys.add(uniqueKey)
+        validCards.push(this.mapToCard(item, uniqueKey))
       })
 
       if (invalidSummaryIds.length > 0) {
@@ -176,20 +186,22 @@ struct SummaryListPage {
     }
   }
 
-  private mapToCard(item: SummaryListItem): MeetingCardData {
-    const participantColors = item.participantNames.map((_name: string, index: number) =>
+  private mapToCard(item: SummaryListItem, cardKey: string): MeetingCardData {
+    const participantNames = item.participantNames ? item.participantNames : []
+    const participantColors = participantNames.map((_name: string, index: number) =>
       getParticipantColor(index)
     )
 
     return {
-      summaryId: item.id,
+      cardKey,
+      summaryId: item.id && item.id.length > 0 ? item.id : cardKey,
       arenaRunId: '',
       title: item.title && item.title.length > 0 ? item.title : '会议纪要',
-      topic: item.topic,
+      topic: item.topic ?? '',
       timeAgo: item.createdAt ? formatTimeAgo(item.createdAt) : '刚刚',
-      participantNames: item.participantNames,
+      participantNames: participantNames,
       participantColors: participantColors,
-      consensusPreview: item.consensusPreview,
+      consensusPreview: item.consensusPreview ?? '',
       messageCount: item.messageCount ?? 0,
       mode: 'chat',
       createdAt: item.createdAt ?? ''
@@ -940,7 +952,7 @@ struct SummaryListPage {
                   } else {
                     ForEach(this.visibleCards, (card: MeetingCardData) => {
                       this.buildMeetingCard(card)
-                    }, (card: MeetingCardData) => card.summaryId)
+                    }, (card: MeetingCardData) => card.cardKey)
                   }
                 }
                 .width('100%')

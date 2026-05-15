@@ -16,14 +16,8 @@ import {
 } from '../common/Models'
 import { upsertSummaryRecordByArenaRunId } from './SummarySyncUtils'
 
-const SUMMARY_SERVER_BASE_URL = 'https://hackhathon.69d5c46af2ab61f5dd649c62.servers.onzeabur.com'
-const SUMMARY_LOCAL_BASE_URLS: string[] = [
-  'http://192.168.0.145:3030',
-  'http://10.0.2.2:3030',
-  'http://127.0.0.1:3030',
-  'http://localhost:3030'
-]
-const SUMMARY_API_BASE_URLS: string[] = [...SUMMARY_LOCAL_BASE_URLS, SUMMARY_SERVER_BASE_URL]
+const SUMMARY_SERVER_BASE_URL = 'https://shixurenge.keenlove.top'
+const SUMMARY_API_BASE_URLS: string[] = [SUMMARY_SERVER_BASE_URL]
 let activeSummaryBaseUrl: string = SUMMARY_API_BASE_URLS[0]
 
 let summaryPrefs: dataPreferences.Preferences | null = null
@@ -125,10 +119,10 @@ function formatThrownError(error: Object): string {
 function normalizeSummaryNetworkError(message: string): string {
   const lower = message.toLowerCase()
   if (lower.includes('invalid ssl peer certificate') || lower.includes('ssh remote key')) {
-    return '线上纪要服务证书校验失败，请切换本地后端或更新服务证书。'
+    return '线上纪要服务证书校验失败，请更新服务证书。'
   }
   if (lower.includes('failed to connect') || lower.includes('connect to server')) {
-    return '纪要后端未启动，或当前设备无法访问本地 3030 服务。'
+    return '当前设备无法访问线上纪要服务。'
   }
   if (lower.includes('could not resolve host')) {
     return '纪要服务域名解析失败，请检查网络或地址配置。'

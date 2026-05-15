@@ -38,7 +38,7 @@ export const buildAgentsRequestSchema = z.object({
 
 export const arenaRunRequestSchema = z.object({
   topic: z.string().min(1), mode: z.enum(['chat', 'debate']),
-  selectedAgentIds: z.array(z.string().min(1)).min(2).max(3),
+  selectedAgentIds: z.array(z.string().min(1)).min(2),
   agents: z.array(personaSpecSchema).min(2),
 });
 

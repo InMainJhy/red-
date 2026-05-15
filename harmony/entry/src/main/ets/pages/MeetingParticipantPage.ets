@@ -11,7 +11,7 @@ import { Typography } from '../common/styles/Typography'
 import { Spacing } from '../common/styles/Spacing'
 import { BorderRadius } from '../common/styles/BorderRadius'
 import { AnimationDuration, AnimationCurve } from '../common/styles/Animation'
-import { parseMeetingSelection } from '../common/MeetingSelection'
+import { encodeRouteStringArray, parseMeetingSelection } from '../common/MeetingSelection'
 import { DynamicGlassBackground } from '../components/DynamicGlassBackground'
 import { BackButton } from '../components/BackButton'
 import { Colors } from '../common/styles/Colors'
@@ -455,8 +455,8 @@ struct MeetingParticipantPage {
       url: 'pages/Index',
       params: {
         profileId: this.profileIds[0],
-        profileIds: this.profileIds.join(','),
-        selectedAgentIds: this.selectedAgentIds.join(',')
+        profileIds: encodeRouteStringArray(this.profileIds),
+        selectedAgentIds: encodeRouteStringArray(this.selectedAgentIds)
       }
     })
   }
@@ -474,7 +474,8 @@ struct MeetingParticipantPage {
       url: 'pages/ProfileDetail',
       params: {
         profileId: profileId,
-        selectedAgentIds: this.selectedAgentIds.join(','),
+        profileIds: encodeRouteStringArray(this.profileIds),
+        selectedAgentIds: encodeRouteStringArray(this.selectedAgentIds),
         returnToMeeting: '1'
       }
     })

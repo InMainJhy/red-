@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>时序人格局 · 项目介绍</title>
+    <style>
+      :root {
+        --bg: #f6efe4;
+        --panel: rgba(255, 251, 245, 0.9);
+        --ink: #1f2328;
+        --muted: #625d57;
+        --line: rgba(31, 35, 40, 0.1);
+        --accent: #e85d2a;
+        --cyan: #117c8b;
+        --blue: #1b66c9;
+        --gold: #af7e19;
+        --shadow: 0 22px 64px rgba(74, 49, 24, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at left top, rgba(27, 102, 201, 0.2), transparent 28%),
+          radial-gradient(circle at right top, rgba(232, 93, 42, 0.24), transparent 24%),
+          linear-gradient(180deg, #f8f1e7 0%, #f2e8d7 100%);
+        font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+
+      h1,
+      h2,
+      h3,
+      .metric-value,
+      .section-kicker,
+      .card-index {
+        font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+      }
+
+      .shell {
+        width: min(1200px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 28px 0 72px;
+      }
+
+      .hero,
+      .section {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      .hero {
+        padding: 42px;
+      }
+
+      .hero::before,
+      .hero::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        pointer-events: none;
+      }
+
+      .hero::before {
+        width: 320px;
+        height: 320px;
+        top: -120px;
+        right: -90px;
+        background: radial-gradient(circle, rgba(232, 93, 42, 0.24), transparent 70%);
+      }
+
+      .hero::after {
+        width: 260px;
+        height: 260px;
+        left: -80px;
+        bottom: -110px;
+        background: radial-gradient(circle, rgba(17, 124, 139, 0.18), transparent 70%);
+      }
+
+      .badges,
+      .metrics,
+      .value-grid,
+      .flow-grid,
+      .feature-grid,
+      .demo-grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .badges {
+        grid-template-columns: repeat(3, max-content);
+        margin-bottom: 18px;
+      }
+
+      .badge {
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(31, 35, 40, 0.06);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        max-width: 860px;
+        font-size: clamp(34px, 6vw, 68px);
+        line-height: 1.04;
+      }
+
+      .hero p {
+        max-width: 800px;
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.85;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 28px;
+      }
+
+      .metric {
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(31, 35, 40, 0.08);
+      }
+
+      .metric-value {
+        font-size: 36px;
+        line-height: 1;
+      }
+
+      .metric-label {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .section {
+        margin-top: 28px;
+        padding: 34px;
+      }
+
+      .section-kicker {
+        margin: 0 0 8px;
+        color: var(--accent);
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .section h2 {
+        margin: 0;
+        font-size: clamp(26px, 4vw, 42px);
+        line-height: 1.1;
+      }
+
+      .intro {
+        max-width: 840px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.85;
+      }
+
+      .value-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 24px;
+      }
+
+      .value-card,
+      .flow-card,
+      .feature-card,
+      .demo-card {
+        border-radius: 24px;
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        background: rgba(255, 255, 255, 0.82);
+      }
+
+      .value-card {
+        padding: 20px;
+      }
+
+      .value-card h3 {
+        margin: 0;
+        font-size: 22px;
+      }
+
+      .value-card p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .flow-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        margin-top: 26px;
+      }
+
+      .flow-card {
+        position: relative;
+        padding: 20px 18px;
+        min-height: 160px;
+      }
+
+      .flow-card::after {
+        content: "→";
+        position: absolute;
+        right: -13px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(31, 35, 40, 0.24);
+        font-size: 28px;
+      }
+
+      .flow-card:last-child::after {
+        display: none;
+      }
+
+      .flow-step {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .flow-title {
+        margin-top: 10px;
+        font-size: 22px;
+      }
+
+      .flow-text {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.75;
+      }
+
+      .feature-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 26px;
+      }
+
+      .feature-card {
+        padding: 22px;
+      }
+
+      .card-index {
+        color: rgba(31, 35, 40, 0.16);
+        font-size: 52px;
+        line-height: 1;
+      }
+
+      .feature-card h3 {
+        margin: 12px 0 0;
+        font-size: 28px;
+        line-height: 1.08;
+      }
+
+      .feature-card p {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.85;
+      }
+
+      .feature-note {
+        margin-top: 14px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(31, 35, 40, 0.05);
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.75;
+      }
+
+      .demo-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 24px;
+      }
+
+      .demo-card {
+        padding: 22px;
+      }
+
+      .demo-card h3 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .demo-card p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .closing {
+        text-align: center;
+      }
+
+      .closing p {
+        max-width: 900px;
+        margin: 14px auto 0;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.9;
+      }
+
+      .footer-note {
+        margin-top: 24px;
+        padding: 18px 20px;
+        border-radius: 20px;
+        background: rgba(31, 35, 40, 0.05);
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      @media (max-width: 1100px) {
+        .metrics,
+        .value-grid,
+        .feature-grid,
+        .demo-grid,
+        .flow-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .flow-card::after {
+          display: none;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          width: min(100% - 24px, 1200px);
+          padding-top: 14px;
+        }
+
+        .hero,
+        .section {
+          padding: 24px 18px;
+          border-radius: 24px;
+        }
+
+        .badges,
+        .metrics,
+        .value-grid,
+        .feature-grid,
+        .demo-grid,
+        .flow-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero h1 {
+          font-size: 34px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="badges">
+          <div class="badge">项目介绍页</div>
+          <div class="badge">HarmonyOS 主展示端</div>
+          <div class="badge">时序人格局</div>
+        </div>
+        <h1>让不同时期的自己，围绕同一个问题开一场会。</h1>
+        <p>
+          “时序人格局”把同一个人不同人生阶段的人格切片组织成一场会议，
+          让这些人格围绕同一议题展开讨论，并把结果沉淀为纪要、海报和可继续传播的内容。
+          它既是一个有叙事感的 AI 项目，也是一套深度结合 HarmonyOS 系统能力的全场景体验。
+        </p>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-value">1</div>
+            <div class="metric-label">核心创意主线</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">6</div>
+            <div class="metric-label">Harmony 主流程页面</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">12</div>
+            <div class="metric-label">已接入系统特性</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">4</div>
+            <div class="metric-label">核心价值维度</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-kicker">Why This Project</p>
+        <h2>这个项目想解决的，不只是“问 AI 一个问题”。</h2>
+        <p class="intro">
+          很多人在面对人生选择、情绪困惑和职业判断时，容易被单一视角困住。
+          我们希望借助 AI，把“同一个人不同人生阶段的自己”重新召集起来，
+          让它们围绕同一个问题进行讨论。这样用户看到的不是一个标准答案，
+          而是一场有分歧、有碰撞、有整理过程的人格会议。
+        </p>
+        <div class="value-grid">
+          <article class="value-card">
+            <h3>降低思考门槛</h3>
+            <p>用户不需要一个人反复内耗，可以快速获得多视角讨论结果。</p>
+          </article>
+          <article class="value-card">
+            <h3>增强情绪代入</h3>
+            <p>相比传统问答，和“不同阶段的自己开会”更容易产生共鸣。</p>
+          </article>
+          <article class="value-card">
+            <h3>强化结果沉淀</h3>
+            <p>结果不会停留在聊天里，而会沉淀为纪要、海报和提醒。</p>
+          </article>
+          <article class="value-card">
+            <h3>适合 HarmonyOS</h3>
+            <p>会议、纪要、分享、流转和大屏展示天然适合全场景能力接入。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-kicker">Core Flow</p>
+        <h2>从人格会议到纪要复盘，主流程已经形成闭环。</h2>
+        <p class="intro">
+          我们当前的 Harmony 主展示端，已经把用户从进入项目、发起讨论、生成结果到继续传播的整个过程串联起来。
+        </p>
+        <div class="flow-grid">
+          <article class="flow-card">
+            <div class="flow-step">Step 01</div>
+            <div class="flow-title">进入</div>
+            <div class="flow-text">从启动页进入首页工作台，或者通过系统级入口直接回到场景。</div>
+          </article>
+          <article class="flow-card">
+            <div class="flow-step">Step 02</div>
+            <div class="flow-title">选人</div>
+            <div class="flow-text">选择参会人格，也可以创建、导入和扩充人物资料。</div>
+          </article>
+          <article class="flow-card">
+            <div class="flow-step">Step 03</div>
+            <div class="flow-title">开会</div>
+            <div class="flow-text">围绕用户议题，触发不同人格之间的会议式讨论。</div>
+          </article>
+          <article class="flow-card">
+            <div class="flow-step">Step 04</div>
+            <div class="flow-title">沉淀</div>
+            <div class="flow-text">把讨论结果沉淀为纪要，支持回看、收藏和详情阅读。</div>
+          </article>
+          <article class="flow-card">
+            <div class="flow-step">Step 05</div>
+            <div class="flow-title">生成</div>
+            <div class="flow-text">将会议结果进一步转化为海报与分享内容。</div>
+          </article>
+          <article class="flow-card">
+            <div class="flow-step">Step 06</div>
+            <div class="flow-title">传播</div>
+            <div class="flow-text">通过分享、扫码、碰一碰、流转和投播继续扩展场景。</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-kicker">Project Strengths</p>
+        <h2>这个项目最核心的 6 个亮点</h2>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="card-index">01</div>
+            <h3>创意表达强</h3>
+            <p>“让不同时期的自己开会”这个设定本身就非常有记忆点，既有情绪价值，也有叙事张力。</p>
+            <div class="feature-note">它不是普通 AI 问答，而是具有人物视角冲突的会议体验。</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="card-index">02</div>
+            <h3>产品链路完整</h3>
+            <p>从人物、会议、纪要到海报和分享，项目不是单点功能，而是一整套连续体验。</p>
+            <div class="feature-note">用户不是只“问一次”，而是会经历生成、沉淀、传播和复盘。</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="card-index">03</div>
+            <h3>HarmonyOS 特色鲜明</h3>
+            <p>项目已经深度接入桌面卡片、深链、扫码、碰一碰、流转和投播等能力。</p>
+            <div class="feature-note">系统能力不是附加项，而是体验本身的一部分。</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="card-index">04</div>
+            <h3>内容适合传播</h3>
+            <p>纪要和海报天然适合被分享、扫码、拖拽、碰一碰和跨设备展示。</p>
+            <div class="feature-note">这让项目非常适合现场演示，也适合继续扩展社交传播场景。</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="card-index">05</div>
+            <h3>协同价值明显</h3>
+            <p>用户可以在手机开会，在平板查看纪要，在智慧屏展示海报。</p>
+            <div class="feature-note">这和 HarmonyOS 的一体协同理念天然匹配。</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="card-index">06</div>
+            <h3>展示感很强</h3>
+            <p>项目内容不仅能看，还能被整理成更适合答辩和投屏的形式。</p>
+            <div class="feature-note">人格会议本身就有戏剧性，结合系统特性后观感更完整。</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-kicker">Demo Path</p>
+        <h2>如果用于答辩，最推荐这样展示</h2>
+        <div class="demo-grid">
+          <article class="demo-card">
+            <h3>先讲创意</h3>
+            <p>先用一句话说明项目设定：让同一个人不同人生阶段的自己围绕同一议题开一场会。</p>
+          </article>
+          <article class="demo-card">
+            <h3>再跑主流程</h3>
+            <p>从首页进入会议，展示人格讨论、会议纪要沉淀以及海报生成过程。</p>
+          </article>
+          <article class="demo-card">
+            <h3>最后亮系统能力</h3>
+            <p>依次展示桌面卡片、深链、二维码、碰一碰、跨设备流转和大屏投播。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section closing">
+        <p class="section-kicker">Conclusion</p>
+        <h2>它不是一个单纯的 AI 应用，而是一套 AI 与 HarmonyOS 深度结合的体验方案。</h2>
+        <p>
+          “时序人格局”希望表达的是：AI 不只是给出一个答案，
+          还可以帮助用户从多个视角重新理解自己。
+        </p>
+        <p>
+          而 HarmonyOS 在这个项目里也不只是一个运行平台，
+          而是通过入口、传播、协同和展示能力，把这条体验真正串成了一条闭环。
+        </p>
+        <div class="footer-note">
+          配套材料：
+          [项目介绍文档](/Users/intmainjhy/Desktop/red--main/docs/project-introduction-2026-05-15.md)、
+          [项目介绍口述稿](/Users/intmainjhy/Desktop/red--main/docs/project-introduction-oral-script-2026-05-15.md)、
+          [Harmony 特性展示页](/Users/intmainjhy/Desktop/red--main/docs/harmony-feature-showcase-2026-05-15.html)。
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

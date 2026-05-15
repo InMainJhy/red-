@@ -23,7 +23,7 @@ import { Typography } from '../common/styles/Typography'
 import { Spacing } from '../common/styles/Spacing'
 import { BorderRadius } from '../common/styles/BorderRadius'
 import { AnimationDuration, AnimationCurve } from '../common/styles/Animation'
-import { parseMeetingSelection } from '../common/MeetingSelection'
+import { encodeRouteStringArray, parseMeetingSelection } from '../common/MeetingSelection'
 import { buildContinueMeetingShareText, buildContinueMeetingUri } from '../common/LaunchIntent'
 import promptAction from '@ohos.promptAction'
 import { BackButton } from '../components/BackButton'
@@ -642,8 +642,8 @@ struct MeetingChatPage {
       url: 'pages/MeetingParticipantPage',
       params: {
         profileId: effectiveProfiles[0],
-        profileIds: effectiveProfiles.join(','),
-        selectedAgentIds: this.selectedAgentIds.join(','),
+        profileIds: encodeRouteStringArray(effectiveProfiles),
+        selectedAgentIds: encodeRouteStringArray(this.selectedAgentIds),
         topic: this.topic,
         reasoningEffort: this.reasoningEffort,
         focus: 'roles'

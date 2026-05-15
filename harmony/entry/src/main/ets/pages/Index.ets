@@ -24,6 +24,7 @@ import { BorderRadius } from '../common/styles/BorderRadius'
 import { LoadingOverlay, ErrorToast, RecordsTab, RecordItem, TabBar, Icon, AnimatedCloudMascot } from '../components'
 import { LaunchIntent, buildLaunchIntentFromQuickAction, buildRecentMeetingSnapshot, buildRouteParamsFromLaunchIntent } from '../common/LaunchIntent'
 import { LaunchIntentStore } from '../common/LaunchIntentStore'
+import { encodeRouteStringArray } from '../common/MeetingSelection'
 
 interface HomeRouteParams extends RouteParams {
   userName?: string
@@ -283,6 +284,21 @@ struct Index {
 
   private hasReadyMeetingSelection(): boolean {
     return this.effectiveSelectedAgentIds().length >= 2
+  }
+
+  private effectiveMeetingProfileIds(): string[] {
+    const merged: string[] = []
+    const sessionProfileIds = MeetingSessionStore.getProfileIds()
+    sessionProfileIds.forEach((profileId: string) => {
+      const trimmed = profileId.trim()
+      if (trimmed.length > 0 && !merged.includes(trimmed)) {
+        merged.push(trimmed)
+      }
+    })
+    if (this.selectedProfile.id.length > 0 && !merged.includes(this.selectedProfile.id)) {
+      merged.push(this.selectedProfile.id)
+    }
+    return merged
   }
 
   private syncMeetingWorkbenchFromSession(): void {
@@ -802,7 +818,7 @@ struct Index {
 
     const params: IndexNavigationParams = {
       profileId: this.selectedProfile.id,
-      selectedAgentIds: this.selectedAgentIds.join(',')
+      selectedAgentIds: encodeRouteStringArray(this.selectedAgentIds)
     }
     await this.pushPage('pages/ProfileDetail', params)
   }
@@ -835,10 +851,12 @@ struct Index {
 
     const reasoningEffort = MeetingSessionStore.getReasoningEffort()
     const selectedAgentIds = this.effectiveSelectedAgentIds()
+    const profileIds = this.effectiveMeetingProfileIds()
+    const primaryProfileId = profileIds.length > 0 ? profileIds[0] : this.selectedProfile.id
     const params: IndexNavigationParams = {
-      profileId: this.selectedProfile.id,
-      profileIds: this.selectedProfile.id,
-      selectedAgentIds: selectedAgentIds.join(','),
+      profileId: primaryProfileId,
+      profileIds: encodeRouteStringArray(profileIds.length > 0 ? profileIds : [primaryProfileId]),
+      selectedAgentIds: encodeRouteStringArray(selectedAgentIds),
       focus: focus,
       reasoningEffort: reasoningEffort
     }
@@ -847,9 +865,11 @@ struct Index {
 
   private async goMeetingChatDirect(): Promise<void> {
     const selectedAgentIds = this.effectiveSelectedAgentIds()
-    if (this.hasSelectedProfile()) {
-      MeetingSessionStore.setProfileId(this.selectedProfile.id)
-      MeetingSessionStore.setProfileIds([this.selectedProfile.id])
+    const profileIds = this.effectiveMeetingProfileIds()
+    const primaryProfileId = profileIds.length > 0 ? profileIds[0] : ''
+    if (primaryProfileId.length > 0) {
+      MeetingSessionStore.setProfileId(primaryProfileId)
+      MeetingSessionStore.setProfileIds(profileIds)
     }
     MeetingSessionStore.setSelectedAgents(selectedAgentIds)
     MeetingSessionStore.setTopic('')
@@ -857,9 +877,9 @@ struct Index {
     MeetingSessionStore.clearContinueContext()
 
     const params: IndexNavigationParams = {
-      profileId: this.hasSelectedProfile() ? this.selectedProfile.id : '',
-      profileIds: this.hasSelectedProfile() ? this.selectedProfile.id : '',
-      selectedAgentIds: selectedAgentIds.join(','),
+      profileId: primaryProfileId,
+      profileIds: profileIds.length > 0 ? encodeRouteStringArray(profileIds) : '',
+      selectedAgentIds: encodeRouteStringArray(selectedAgentIds),
       topic: '',
       reasoningEffort: this.meetingReasoningEffort
     }
@@ -947,8 +967,8 @@ struct Index {
     MeetingSessionStore.setContinueContext(record.id, record.sessionId ? record.sessionId : '')
     await this.pushPage('pages/MeetingChatPage', {
       profileId: primaryProfileId,
-      profileIds: recordProfileIds.join(','),
-      selectedAgentIds: selectedAgentIds.join(','),
+      profileIds: encodeRouteStringArray(recordProfileIds),
+      selectedAgentIds: encodeRouteStringArray(selectedAgentIds),
       topic: record.topic && record.topic.length > 0 ? record.topic : this.topic,
       continueFromRunId: record.id,
       sessionId: record.sessionId ? record.sessionId : '',
@@ -1056,8 +1076,8 @@ struct Index {
 
     const params: IndexNavigationParams = {
       profileId: effectiveProfileIds[0],
-      profileIds: effectiveProfileIds.join(','),
-      selectedAgentIds: this.effectiveSelectedAgentIds().join(','),
+      profileIds: encodeRouteStringArray(effectiveProfileIds),
+      selectedAgentIds: encodeRouteStringArray(this.effectiveSelectedAgentIds()),
       topic: '',
       reasoningEffort: this.meetingReasoningEffort,
       focus: 'roles'
@@ -1066,12 +1086,9 @@ struct Index {
   }
 
   private effectiveProfileIdsForLaunch(): string[] {
-    if (this.selectedProfile.id.length > 0) {
-      return [this.selectedProfile.id]
-    }
-    const sessionProfileIds = MeetingSessionStore.getProfileIds()
-    if (sessionProfileIds.length > 0) {
-      return sessionProfileIds
+    const profileIds = this.effectiveMeetingProfileIds()
+    if (profileIds.length > 0) {
+      return profileIds
     }
     if (this.profiles.length > 0) {
       return [this.profiles[0].id]

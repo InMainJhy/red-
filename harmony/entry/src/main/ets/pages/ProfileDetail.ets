@@ -12,6 +12,7 @@ import { BorderRadius } from '../common/styles/BorderRadius'
 import { BackButtonText } from '../components/BackButton'
 import { DynamicGlassBackground } from '../components/DynamicGlassBackground'
 import { Colors } from '../common/styles/Colors'
+import { encodeRouteStringArray, parseRouteStringArray } from '../common/MeetingSelection'
 
 type ThemeColor = ResourceColor | string
 const FALLBACK_SAFE_TOP_VP: number = 52
@@ -43,9 +44,7 @@ struct ProfileDetail {
     const rawParams = router.getParams()
     const params: RouteParams = rawParams ? rawParams as RouteParams : {}
     const profileId = params.profileId ?? MeetingSessionStore.getProfileId() ?? ''
-    const routeSelectedAgentIds = params.selectedAgentIds
-      ? params.selectedAgentIds.split(',').filter((agentId: string) => agentId.length > 0)
-      : []
+    const routeSelectedAgentIds = parseRouteStringArray(params.selectedAgentIds)
     this.returnToMeeting = params.returnToMeeting === '1'
     const sessionProfileId = MeetingSessionStore.getProfileId()
     const sessionSelectedAgentIds = this.returnToMeeting && sessionProfileId === profileId
@@ -176,8 +175,8 @@ struct ProfileDetail {
       url: 'pages/MeetingParticipantPage',
       params: {
         profileId: this.profile.id,
-        profileIds: this.profile.id,
-        selectedAgentIds: meetingAgentIds.join(',')
+        profileIds: encodeRouteStringArray([this.profile.id]),
+        selectedAgentIds: encodeRouteStringArray(meetingAgentIds)
       }
     })
   }

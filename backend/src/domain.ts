@@ -102,6 +102,10 @@ export interface ArenaRun {
   participants: PersonaSpec[];
   messages: ArenaMessage[];
   summary: ArenaSummary;
+  sessionId?: string;
+  continuedFromRunId?: string;
+  status?: 'completed' | 'interrupted';
+  createdAt?: string;
 }
 
 export interface ParseTimelineRequest {
